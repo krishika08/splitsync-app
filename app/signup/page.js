@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { signup } from "@/services/authService";
 
 export default function SignupPage() {
@@ -10,6 +12,7 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const router = useRouter();
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -25,6 +28,7 @@ export default function SignupPage() {
       setLoading(true);
       const data = await signup(email, password);
       console.log("Signup successful:", data);
+      router.push("/dashboard");
     } catch (err) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -131,12 +135,12 @@ export default function SignupPage() {
 
         <p className="mt-5 text-center text-sm text-slate-600">
           Already have an account?{" "}
-          <a
+          <Link
             href="/login"
             className="font-medium text-slate-900 underline-offset-4 hover:underline"
           >
             Login
-          </a>
+          </Link>
         </p>
       </div>
     </div>

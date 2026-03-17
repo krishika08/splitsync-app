@@ -1,16 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { login } from "@/services/authService";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const router = useRouter();
 
   const handleLogin = async () => {
     try {
       const response = await login(email, password);
       console.log("Login successful:", response);
+      router.push("/dashboard");
     } catch (error) {
       console.error("Login failed:", error.message);
     }
@@ -73,12 +77,12 @@ export default function LoginPage() {
 
         <p className="mt-5 text-center text-sm text-slate-600">
           Don&apos;t have an account?{" "}
-          <a
+          <Link
             href="/signup"
             className="font-medium text-slate-900 underline-offset-4 hover:underline"
           >
             Sign up
-          </a>
+          </Link>
         </p>
       </div>
     </div>
