@@ -2,20 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getCurrentUser, logout } from "@/services/authService";
+import { supabase } from "@/lib/supabaseClient";
+import { logout } from "@/services/authService";
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
     const checkUser = async () => {
-      const user = await getCurrentUser();
-      if (!user) {
+      const { data } = await supabase.auth.getUser();
+      if (!data?.user) {
         router.push("/login");
       } else {
-        setLoading(false);
+        setUser(data.user);
       }
+      setLoading(false);
     };
     checkUser();
   }, [router]);
@@ -33,7 +36,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-        <p className="text-sm text-slate-500">Loading...</p>
+        <p className="text-sm text-slate-500">Checking authentication...</p>
       </div>
     );
   }
@@ -44,9 +47,10 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
           Welcome to Dashboard
         </h1>
-        <p className="mt-2 text-sm text-slate-500">
-          You are successfully logged in.
-        </p>
+
+        {user?.email && (
+          <p className="mt-2 text-sm text-slate-500">{user.email}</p>
+        )}
 
         <button
           type="button"
