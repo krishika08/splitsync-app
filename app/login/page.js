@@ -1,3 +1,5 @@
+"use client";
+
 export default function LoginPage() {
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 to-slate-100 px-4 flex items-center justify-center">
