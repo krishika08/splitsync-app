@@ -7,17 +7,38 @@ import { supabase } from "@/lib/supabaseClient";
 import { logout } from "@/services/authService";
 import { createGroup, getUserGroups } from "@/services/groupService";
 
+// ── Colour palette per index ──────────────────────────────────────────────────
+const CARD_ACCENTS = [
+  { bg: "from-violet-500 to-indigo-500", light: "bg-violet-50", text: "text-violet-600", border: "hover:border-violet-300" },
+  { bg: "from-pink-500 to-rose-500",     light: "bg-pink-50",   text: "text-pink-600",   border: "hover:border-pink-300"   },
+  { bg: "from-amber-400 to-orange-500",  light: "bg-amber-50",  text: "text-amber-600",  border: "hover:border-amber-300"  },
+  { bg: "from-emerald-400 to-teal-500",  light: "bg-emerald-50",text: "text-emerald-600",border: "hover:border-emerald-300"},
+  { bg: "from-sky-400 to-blue-500",      light: "bg-sky-50",    text: "text-sky-600",    border: "hover:border-sky-300"    },
+];
+const accent = (i) => CARD_ACCENTS[i % CARD_ACCENTS.length];
+
+// ── Avatar initials ───────────────────────────────────────────────────────────
+function Avatar({ name, className = "" }) {
+  const initials = name?.slice(0, 2).toUpperCase() ?? "G";
+  return (
+    <span
+      className={`inline-flex items-center justify-center rounded-xl text-sm font-bold text-white ${className}`}
+    >
+      {initials}
+    </span>
+  );
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
-  const [groups, setGroups] = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [user, setUser]                 = useState(null);
+  const [groups, setGroups]             = useState([]);
   const [loadingGroups, setLoadingGroups] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [groupName, setGroupName] = useState("");
+  const [showModal, setShowModal]       = useState(false);
+  const [groupName, setGroupName]       = useState("");
   const [modalLoading, setModalLoading] = useState(false);
-  const [modalError, setModalError] = useState("");
+  const [modalError, setModalError]     = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -34,7 +55,6 @@ export default function DashboardPage() {
     checkUser();
   }, [router]);
 
-  // ── Fetch real groups ─────────────────────────────────────────────────────────
   const fetchGroups = async () => {
     setLoadingGroups(true);
     const { data, error } = await getUserGroups();
@@ -45,14 +65,12 @@ export default function DashboardPage() {
   const handleLogout = async () => {
     try {
       await logout();
-      console.log("Logged out successfully");
       router.push("/login");
     } catch (error) {
       console.error("Logout failed:", error.message);
     }
   };
 
-  // ── Modal handlers ────────────────────────────────────────────────────────────
   const handleCreate = async () => {
     if (!groupName.trim()) return;
     setModalLoading(true);
@@ -64,156 +82,203 @@ export default function DashboardPage() {
       console.log("Group created successfully:", data);
       setGroupName("");
       setShowModal(false);
-      fetchGroups(); // refresh list
+      fetchGroups();
     }
     setModalLoading(false);
   };
 
   const handleCancel = () => {
-    if (modalLoading) return; // prevent closing mid-request
+    if (modalLoading) return;
     setGroupName("");
     setModalError("");
     setShowModal(false);
   };
 
-  // ── Loading state ────────────────────────────────────────────────────────────
+  // ── Auth loading ─────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-        <p className="text-sm text-slate-500 animate-pulse">
-          Checking authentication…
-        </p>
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#0f0f1a]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+          <p className="text-sm text-slate-400 animate-pulse">Signing you in…</p>
+        </div>
       </div>
     );
   }
 
+  const username = user?.email?.split("@")[0] ?? "there";
+
   // ── Dashboard ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* ── Header ── */}
-      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4 sm:px-6">
+    <div className="min-h-screen bg-[#0f0f1a] text-white">
+
+      {/* keyframes */}
+      <style>{`
+        @keyframes modalFadeScale {
+          from { opacity: 0; transform: scale(0.95) translateY(8px); }
+          to   { opacity: 1; transform: scale(1)    translateY(0);   }
+        }
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: translateY(0);    }
+        }
+        .fade-up { animation: fadeUp 0.4s ease-out forwards; }
+        .fade-up-d1 { animation-delay: 0.05s; opacity: 0; }
+        .fade-up-d2 { animation-delay: 0.10s; opacity: 0; }
+        .fade-up-d3 { animation-delay: 0.15s; opacity: 0; }
+      `}</style>
+
+      {/* ── Sticky nav ── */}
+      <nav className="sticky top-0 z-20 border-b border-white/5 bg-[#0f0f1a]/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
           {/* Brand */}
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">💸</span>
-            <span className="text-lg font-bold tracking-tight text-slate-900">
-              SplitSync
-            </span>
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/30">
+              <span className="text-sm">💸</span>
+            </div>
+            <span className="text-base font-bold tracking-tight">SplitSync</span>
           </div>
 
-          {/* User info + Logout */}
-          <div className="flex items-center gap-3">
-            {user?.email && (
-              <span className="hidden text-sm text-slate-500 sm:block">
-                {user.email}
-              </span>
-            )}
+          {/* Right side */}
+          <div className="flex items-center gap-2">
+            {/* user chip */}
+            <div className="hidden sm:flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+              <div className="h-5 w-5 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center text-[10px] font-bold">
+                {username.slice(0, 1).toUpperCase()}
+              </div>
+              <span className="text-xs text-slate-300">{user?.email}</span>
+            </div>
             <button
-              type="button"
               onClick={handleLogout}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20"
+              className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
             >
               Logout
             </button>
           </div>
         </div>
-      </header>
+      </nav>
 
-      {/* ── Main content ── */}
-      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
-        {/* Welcome banner */}
-        <div className="mb-8 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-6 text-white shadow-lg sm:px-8">
-          <p className="text-sm font-medium opacity-80">Good to see you 👋</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
-            Welcome,{" "}
-            <span className="opacity-90">
-              {user?.email?.split("@")[0] ?? "there"}
-            </span>
+      {/* ── Hero section ── */}
+      <div className="relative overflow-hidden">
+        {/* glow blobs */}
+        <div className="pointer-events-none absolute -top-20 left-1/4 h-72 w-72 rounded-full bg-indigo-600/20 blur-3xl" />
+        <div className="pointer-events-none absolute -top-10 right-1/3 h-56 w-56 rounded-full bg-violet-600/20 blur-3xl" />
+
+        <div className="relative mx-auto max-w-5xl px-4 pt-10 pb-8 sm:px-6">
+          <p className="fade-up text-xs font-semibold uppercase tracking-widest text-indigo-400">
+            Dashboard
+          </p>
+          <h1 className="fade-up fade-up-d1 mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">
+            Hey, <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">{username}</span> 👋
           </h1>
-          <p className="mt-1 text-sm opacity-70">{user?.email}</p>
-        </div>
+          <p className="fade-up fade-up-d2 mt-1 text-sm text-slate-400">
+            {user?.email} · {groups.length} group{groups.length !== 1 ? "s" : ""}
+          </p>
 
-        {/* ── Create Group button ── */}
-        <div className="mb-8 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-slate-800">Your Groups</h2>
+          {/* Stats row */}
+          <div className="fade-up fade-up-d3 mt-6 grid grid-cols-3 gap-3 sm:gap-4">
+            {[
+              { label: "Groups",   value: groups.length, icon: "🗂️" },
+              { label: "Expenses", value: "—",           icon: "🧾" },
+              { label: "Settled",  value: "—",           icon: "✅" },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className="rounded-2xl border border-white/5 bg-white/5 p-4 backdrop-blur-sm"
+              >
+                <span className="text-xl">{s.icon}</span>
+                <p className="mt-2 text-2xl font-bold">{s.value}</p>
+                <p className="text-xs text-slate-400">{s.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Groups section ── */}
+      <main className="mx-auto max-w-5xl px-4 pb-16 sm:px-6">
+        {/* Section header */}
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-base font-semibold text-slate-200">Your Groups</h2>
           <button
-            type="button"
             onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-indigo-700 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:ring-offset-2"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:bg-indigo-500 hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
           >
-            <span className="text-base leading-none">+</span>
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
             Create Group
           </button>
         </div>
 
-        {/* ── Group cards ── */}
+        {/* Cards */}
         {loadingGroups ? (
-          /* Loading skeleton */
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-              >
+              <div key={i} className="rounded-2xl border border-white/5 bg-white/5 p-5">
                 <div className="flex items-center gap-3">
-                  <div className="h-11 w-11 animate-pulse rounded-xl bg-slate-100" />
+                  <div className="h-11 w-11 animate-pulse rounded-xl bg-white/10" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-3.5 w-2/3 animate-pulse rounded bg-slate-100" />
-                    <div className="h-3 w-1/3 animate-pulse rounded bg-slate-100" />
+                    <div className="h-3.5 w-2/3 animate-pulse rounded bg-white/10" />
+                    <div className="h-3 w-1/3 animate-pulse rounded bg-white/10" />
                   </div>
                 </div>
               </div>
             ))}
           </div>
         ) : groups.length === 0 ? (
-          /* Empty state */
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white py-16 text-center shadow-sm">
-            <span className="text-4xl">🗂️</span>
-            <p className="mt-3 text-base font-semibold text-slate-700">
-              No groups yet
-            </p>
-            <p className="mt-1 text-sm text-slate-400">
-              Create one to start splitting expenses!
-            </p>
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.03] py-20 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 text-3xl">
+              🗂️
+            </div>
+            <p className="mt-4 text-base font-semibold text-slate-200">No groups yet</p>
+            <p className="mt-1 text-sm text-slate-500">Create your first group to start splitting.</p>
             <button
-              type="button"
               onClick={() => setShowModal(true)}
-              className="mt-5 inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-indigo-700 hover:scale-[1.02]"
+              className="mt-6 inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:bg-indigo-500 hover:scale-[1.03]"
             >
-              <span className="text-base leading-none">+</span>
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
               Create Group
             </button>
           </div>
         ) : (
-          /* Real group cards */
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {groups.map((group) => (
-              <Link
-                key={group.id}
-                href={`/group/${group.id}`}
-                className="group block cursor-pointer rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-lg"
-              >
-                {/* Icon + name */}
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-2xl">
-                    🗂️
+            {groups.map((group, i) => {
+              const a = accent(i);
+              return (
+                <Link
+                  key={group.id}
+                  href={`/group/${group.id}`}
+                  className={`group relative overflow-hidden rounded-2xl border border-white/5 bg-white/5 p-5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:bg-white/[0.08] hover:shadow-2xl ${a.border}`}
+                >
+                  {/* gradient bar top */}
+                  <div className={`absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r ${a.bg} opacity-70`} />
+
+                  {/* Icon + name */}
+                  <div className="flex items-start gap-3">
+                    <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${a.bg} text-lg shadow-lg`}>
+                      <Avatar name={group.name} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-slate-100 transition-colors group-hover:text-white">
+                        {group.name}
+                      </p>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {new Date(group.created_at).toLocaleDateString("en-IN", {
+                          day: "numeric", month: "short", year: "numeric",
+                        })}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-semibold text-slate-900 transition-colors group-hover:text-indigo-700">
-                      {group.name}
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      Created{" "}
-                      {new Date(group.created_at).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </p>
+
+                  {/* Footer */}
+                  <div className="mt-4 flex items-center justify-between">
+                    <span className={`rounded-full ${a.light} ${a.text} px-2.5 py-0.5 text-xs font-medium`}>
+                      Active
+                    </span>
+                    <svg className="h-4 w-4 text-slate-500 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         )}
       </main>
@@ -221,120 +286,79 @@ export default function DashboardPage() {
       {/* ── Create Group Modal ── */}
       {showModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center"
           onClick={(e) => e.target === e.currentTarget && handleCancel()}
         >
-          {/* Modal card */}
           <div
-            className="w-full max-w-md animate-[modalIn_0.2s_ease-out] rounded-2xl bg-white p-6 shadow-xl"
-            style={{
-              animation:
-                "modalFadeScale 0.2s ease-out forwards",
-            }}
+            className="w-full max-w-md rounded-t-3xl bg-[#18182a] p-6 shadow-2xl sm:rounded-3xl"
+            style={{ animation: "modalFadeScale 0.22s ease-out forwards" }}
           >
+            {/* Handle (mobile) */}
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/10 sm:hidden" />
+
             {/* Header */}
             <div className="mb-5 flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-semibold text-gray-800">
-                  Create Group
-                </h2>
-                <p className="mt-0.5 text-sm text-gray-500">
-                  Give your group a name to get started.
-                </p>
+                <h2 className="text-lg font-bold text-white">Create a Group</h2>
+                <p className="mt-0.5 text-sm text-slate-400">Give your split group a name.</p>
               </div>
               <button
-                type="button"
                 onClick={handleCancel}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
-                aria-label="Close modal"
+                className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/5 text-slate-400 transition hover:bg-white/10 hover:text-white"
               >
                 ✕
               </button>
             </div>
 
             {/* Input */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               <input
                 type="text"
                 value={groupName}
-                onChange={(e) => {
-                  setGroupName(e.target.value);
-                  if (modalError) setModalError("");
-                }}
+                onChange={(e) => { setGroupName(e.target.value); if (modalError) setModalError(""); }}
                 onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-                placeholder="Enter group name"
+                placeholder="e.g. Trip to Goa, Roommates…"
                 autoFocus
                 disabled={modalLoading}
-                className={`w-full rounded-lg border p-3 text-sm text-gray-800 placeholder-gray-400 transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-gray-50 ${
+                className={`w-full rounded-xl border bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${
                   modalError
-                    ? "border-rose-400 focus:border-rose-400 focus:ring-rose-200"
-                    : "border-gray-300 focus:border-indigo-500 focus:ring-indigo-200"
+                    ? "border-rose-500/60 focus:ring-rose-500/30"
+                    : "border-white/10 focus:border-indigo-500/60 focus:ring-indigo-500/20"
                 }`}
               />
 
-              {/* Inline error message */}
               {modalError && (
-                <p className="flex items-center gap-1.5 text-sm text-rose-600">
-                  <span aria-hidden>⚠️</span>
-                  {modalError}
+                <p className="flex items-center gap-1.5 text-sm text-rose-400">
+                  <span>⚠️</span>{modalError}
                 </p>
               )}
 
-              {/* Action buttons */}
-              <div className="flex items-center justify-end gap-3 pt-1">
+              <div className="flex gap-2 pt-1">
                 <button
-                  type="button"
                   onClick={handleCancel}
                   disabled={modalLoading}
-                  className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-all duration-200 hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex-1 rounded-xl border border-white/10 bg-white/5 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/10 disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
-                  type="button"
                   onClick={handleCreate}
                   disabled={!groupName.trim() || modalLoading}
-                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-indigo-700 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:ring-offset-2"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:bg-indigo-500 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {modalLoading ? (
                     <>
-                      <svg
-                        className="h-4 w-4 animate-spin"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8v8H4z"
-                        />
+                      <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
                       </svg>
                       Creating…
                     </>
-                  ) : (
-                    "Create"
-                  )}
+                  ) : "Create Group"}
                 </button>
               </div>
             </div>
           </div>
-
-          {/* Keyframe injection */}
-          <style>{`
-            @keyframes modalFadeScale {
-              from { opacity: 0; transform: scale(0.95); }
-              to   { opacity: 1; transform: scale(1); }
-            }
-          `}</style>
         </div>
       )}
     </div>
