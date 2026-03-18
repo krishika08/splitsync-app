@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useState } from "react";
 import { addExpense } from "@/services/expenseService";
 
 // ── Placeholder expenses ───────────────────────────────────────────────────────
 const PLACEHOLDER_EXPENSES = [];
 
-export default function GroupDetailPage({ params }) {
-  const { id } = params;
+export default function GroupDetailPage() {
+  const params = useParams();
+  const id = typeof params?.id === "string" ? params.id : params?.id?.[0];
 
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [amount, setAmount]                     = useState("");
@@ -17,6 +19,10 @@ export default function GroupDetailPage({ params }) {
   const [expenseError, setExpenseError]         = useState("");
 
   const handleAddExpense = async () => {
+    if (!id) {
+      setExpenseError("Missing group id. Please refresh and try again.");
+      return;
+    }
     // Validate
     if (!amount || Number(amount) <= 0) {
       setExpenseError("Please enter a valid amount greater than 0.");

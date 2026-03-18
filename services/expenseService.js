@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabaseClient";
 // Add a new expense to a group
 export async function addExpense(groupId, amount, description) {
   try {
+    if (!groupId) return { success: false, error: "Group ID is required" };
     // Get current user
     const {
       data: { user },
