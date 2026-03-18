@@ -37,6 +37,8 @@ const DUMMY_GROUPS = [
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [groupName, setGroupName] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -60,6 +62,19 @@ export default function DashboardPage() {
     } catch (error) {
       console.error("Logout failed:", error.message);
     }
+  };
+
+  // ── Modal handlers ────────────────────────────────────────────────────────────
+  const handleCreate = () => {
+    if (!groupName.trim()) return;
+    console.log("Creating group:", groupName.trim());
+    setGroupName("");
+    setShowModal(false);
+  };
+
+  const handleCancel = () => {
+    setGroupName("");
+    setShowModal(false);
   };
 
   // ── Loading state ────────────────────────────────────────────────────────────
@@ -124,7 +139,8 @@ export default function DashboardPage() {
           <h2 className="text-xl font-semibold text-slate-800">Your Groups</h2>
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-violet-700 active:scale-95 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:ring-offset-2"
+            onClick={() => setShowModal(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-indigo-700 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:ring-offset-2"
           >
             <span className="text-base leading-none">+</span>
             Create Group
@@ -176,6 +192,83 @@ export default function DashboardPage() {
           Showing sample groups · Real groups will appear here once created.
         </p>
       </main>
+
+      {/* ── Create Group Modal ── */}
+      {showModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          onClick={(e) => e.target === e.currentTarget && handleCancel()}
+        >
+          {/* Modal card */}
+          <div
+            className="w-full max-w-md animate-[modalIn_0.2s_ease-out] rounded-2xl bg-white p-6 shadow-xl"
+            style={{
+              animation:
+                "modalFadeScale 0.2s ease-out forwards",
+            }}
+          >
+            {/* Header */}
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800">
+                  Create Group
+                </h2>
+                <p className="mt-0.5 text-sm text-gray-500">
+                  Give your group a name to get started.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                aria-label="Close modal"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Input */}
+            <div className="space-y-4">
+              <input
+                type="text"
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+                placeholder="Enter group name"
+                autoFocus
+                className="w-full rounded-lg border border-gray-300 p-3 text-sm text-gray-800 placeholder-gray-400 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+              />
+
+              {/* Action buttons */}
+              <div className="flex items-center justify-end gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-all duration-200 hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreate}
+                  disabled={!groupName.trim()}
+                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-indigo-700 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:ring-offset-2"
+                >
+                  Create
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Keyframe injection */}
+          <style>{`
+            @keyframes modalFadeScale {
+              from { opacity: 0; transform: scale(0.95); }
+              to   { opacity: 1; transform: scale(1); }
+            }
+          `}</style>
+        </div>
+      )}
     </div>
   );
 }
