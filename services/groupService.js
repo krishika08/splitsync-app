@@ -47,26 +47,26 @@ export async function addMember(groupId, userId) {
   }
 }
 
-// Get all groups created by the current user
-export async function getUserGroups() {
+// Get all groups a user is a member of (using relational join)
+export async function getUserGroups(userId) {
   try {
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return { data: null, error: "Not authenticated" };
+    if (!userId) {
+      return { success: false, error: "User ID is required" };
     }
 
     const { data, error } = await supabase
       .from("groups")
-      .select("id, name, created_at")
-      .eq("created_by", user.id)
+      .select("id, name, created_at, group_members!inner(user_id)")
+      .eq("group_members.user_id", userId)
       .order("created_at", { ascending: false });
 
-    return { data, error: error?.message ?? null };
+    if (error) return { success: false, error: error.message };
+
+    // Clean response — strip the nested join metadata
+    const cleaned = data.map(({ group_members, ...group }) => group);
+
+    return { success: true, data: cleaned };
   } catch (err) {
-    return { data: null, error: err.message };
+    return { success: false, error: err.message };
   }
 }
