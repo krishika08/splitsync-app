@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
@@ -41,6 +41,20 @@ export default function DashboardPage() {
   const [modalError, setModalError]     = useState("");
   const router = useRouter();
 
+  const fetchGroups = useCallback(async (userId) => {
+    setLoadingGroups(true);
+    try {
+      if (!userId) throw new Error("Not authenticated");
+      const result = await getUserGroups(userId);
+      if (result.success) setGroups(result.data ?? []);
+      else throw new Error(result.error ?? "Failed to fetch groups");
+    } catch (err) {
+      console.error("Failed to fetch groups:", err.message);
+    } finally {
+      setLoadingGroups(false);
+    }
+  }, []);
+
   useEffect(() => {
     const checkUser = async () => {
       const { data } = await supabase.auth.getUser();
@@ -48,27 +62,12 @@ export default function DashboardPage() {
         router.push("/login");
       } else {
         setUser(data.user);
-        fetchGroups();
+        fetchGroups(data.user.id);
       }
       setLoading(false);
     };
     checkUser();
-  }, [router]);
-
-  const fetchGroups = async () => {
-    setLoadingGroups(true);
-    try {
-      const { data } = await supabase.auth.getUser();
-      if (data?.user) {
-        const result = await getUserGroups(data.user.id);
-        if (result.success) setGroups(result.data ?? []);
-      }
-    } catch (err) {
-      console.error("Failed to fetch groups:", err.message);
-    } finally {
-      setLoadingGroups(false);
-    }
-  };
+  }, [router, fetchGroups]);
 
   const handleLogout = async () => {
     try {
@@ -90,7 +89,7 @@ export default function DashboardPage() {
       console.log("Group created successfully:", data);
       setGroupName("");
       setShowModal(false);
-      fetchGroups();
+      fetchGroups(user?.id);
     }
     setModalLoading(false);
   };

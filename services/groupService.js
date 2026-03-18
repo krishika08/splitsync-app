@@ -54,18 +54,25 @@ export async function getUserGroups(userId) {
       return { success: false, error: "User ID is required" };
     }
 
-    const { data, error } = await supabase
-      .from("group_members")
-      .select("groups(id, name, created_at)")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false, referencedTable: "groups" });
+    // Defense-in-depth: ensure callers can only query their own groups.
+    // Use getSession() (local) to avoid extra network round-trips/flakiness.
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError || !session?.user) {
+      return { success: false, error: "Not authenticated" };
+    }
+    if (session.user.id !== userId) {
+      return { success: false, error: "Forbidden" };
+    }
+
+    const { data, error } = await supabase.rpc("get_my_groups");
 
     if (error) return { success: false, error: error.message };
 
-    // Unwrap the nested groups object from each row
-    const cleaned = data.map((row) => row.groups).filter(Boolean);
-
-    return { success: true, data: cleaned };
+    return { success: true, data: data ?? [] };
   } catch (err) {
     return { success: false, error: err.message };
   }

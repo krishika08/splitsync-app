@@ -8,18 +8,10 @@ export default function TestConnection() {
 
   useEffect(() => {
     async function checkConnection() {
-      // A lightweight query — replace 'your_table' with any real table name,
-      // or remove the .from() call to just confirm the client initialises.
-      const { data, error } = await supabase
-        .from("your_table") // 👈 change to an existing table, or remove this line
-        .select("*")
-        .limit(1);
-
-      if (error) {
-        setStatus(`❌ Error: ${error.message}`);
-      } else {
-        setStatus(`✅ Connected! Sample data: ${JSON.stringify(data)}`);
-      }
+      // Client init + auth endpoint reachability (no table dependency).
+      const { data, error } = await supabase.auth.getSession();
+      if (error) setStatus(`❌ Error: ${error.message}`);
+      else setStatus(`✅ Connected! Session: ${data?.session ? "present" : "none"}`);
     }
 
     checkConnection();

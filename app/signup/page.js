@@ -28,7 +28,10 @@ export default function SignupPage() {
       setLoading(true);
       const data = await signup(email, password);
       console.log("Signup successful:", data);
-      router.push("/dashboard");
+      // If email confirmations are enabled, Supabase returns no session here.
+      // Redirecting to /dashboard would immediately bounce back to /login.
+      if (data?.session) router.push("/dashboard");
+      else router.push("/login");
     } catch (err) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
