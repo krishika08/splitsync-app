@@ -33,11 +33,11 @@ export async function addMember(groupId, userId) {
 export async function getUserGroups(userId) {
   const { data, error } = await supabase
     .from("group_members")
-    .select("group_id, groups(*)")
+    .select("groups(id, name, created_at)")
     .eq("user_id", userId);
 
   if (error) throw error;
 
-  // Return just the group objects for cleaner usage
+  // Return a clean array of group objects
   return data.map((entry) => entry.groups);
 }
