@@ -73,7 +73,8 @@ export default function DashboardPage() {
     setModalLoading(true);
     setModalError("");
     try {
-      const newGroup = await createGroup(groupName.trim(), user.id);
+      const newGroup = await createGroup(groupName.trim());
+
       console.log("Group created successfully:", newGroup);
       setGroupName("");
       setShowModal(false);
