@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { logout } from "@/services/authService";
 import { createGroup, getUserGroups } from "@/services/groupService";
@@ -187,9 +188,10 @@ export default function DashboardPage() {
           /* Real group cards */
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {groups.map((group) => (
-              <div
+              <Link
                 key={group.id}
-                className="group cursor-pointer rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-md"
+                href={`/group/${group.id}`}
+                className="group block cursor-pointer rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-lg"
               >
                 {/* Icon + name */}
                 <div className="flex items-center gap-3">
@@ -210,7 +212,7 @@ export default function DashboardPage() {
                     </p>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
