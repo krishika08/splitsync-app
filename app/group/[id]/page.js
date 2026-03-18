@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { use, useState } from "react";
+import { useState } from "react";
 import { addExpense } from "@/services/expenseService";
 
 // ── Placeholder expenses ───────────────────────────────────────────────────────
 const PLACEHOLDER_EXPENSES = [];
 
 export default function GroupDetailPage({ params }) {
-  const { id } = use(params);
+  const { id } = params;
 
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [amount, setAmount]                     = useState("");
