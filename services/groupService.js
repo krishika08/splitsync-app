@@ -47,7 +47,7 @@ export async function addMember(groupId, userId) {
   }
 }
 
-// Get all groups a user is a member of (using relational join)
+// Get all groups a user is a member of (via group_members junction table)
 export async function getUserGroups(userId) {
   try {
     if (!userId) {
@@ -55,18 +55,19 @@ export async function getUserGroups(userId) {
     }
 
     const { data, error } = await supabase
-      .from("groups")
-      .select("id, name, created_at, group_members!inner(user_id)")
-      .eq("group_members.user_id", userId)
-      .order("created_at", { ascending: false });
+      .from("group_members")
+      .select("groups(id, name, created_at)")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false, referencedTable: "groups" });
 
     if (error) return { success: false, error: error.message };
 
-    // Clean response — strip the nested join metadata
-    const cleaned = data.map(({ group_members, ...group }) => group);
+    // Unwrap the nested groups object from each row
+    const cleaned = data.map((row) => row.groups).filter(Boolean);
 
     return { success: true, data: cleaned };
   } catch (err) {
     return { success: false, error: err.message };
   }
 }
+

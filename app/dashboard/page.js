@@ -57,12 +57,17 @@ export default function DashboardPage() {
 
   const fetchGroups = async () => {
     setLoadingGroups(true);
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    if (currentUser) {
-      const result = await getUserGroups(currentUser.id);
-      if (result.success) setGroups(result.data ?? []);
+    try {
+      const { data } = await supabase.auth.getUser();
+      if (data?.user) {
+        const result = await getUserGroups(data.user.id);
+        if (result.success) setGroups(result.data ?? []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch groups:", err.message);
+    } finally {
+      setLoadingGroups(false);
     }
-    setLoadingGroups(false);
   };
 
   const handleLogout = async () => {

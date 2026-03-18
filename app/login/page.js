@@ -8,15 +8,22 @@ import { login } from "@/services/authService";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const router = useRouter();
 
   const handleLogin = async () => {
+    if (!email || !password) return;
+    setLoading(true);
+    setError("");
     try {
       const response = await login(email, password);
       console.log("Login successful:", response);
       router.push("/dashboard");
-    } catch (error) {
-      console.log("Login failed:", error.message);
+    } catch (err) {
+      setError(err.message || "Invalid email or password.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -69,10 +76,15 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={handleLogin}
-            className="mt-2 inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:ring-offset-2"
+            disabled={loading}
+            className="mt-2 inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Login
+            {loading ? "Logging in…" : "Login"}
           </button>
+
+          {error && (
+            <p className="text-center text-sm text-red-500">{error}</p>
+          )}
         </form>
 
         <p className="mt-5 text-center text-sm text-slate-600">
