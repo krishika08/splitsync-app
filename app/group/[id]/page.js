@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { use, useState } from "react";
+import { addExpense } from "@/services/expenseService";
 
 // ── Placeholder expenses ───────────────────────────────────────────────────────
 const PLACEHOLDER_EXPENSES = [];
@@ -12,18 +13,42 @@ export default function GroupDetailPage({ params }) {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [amount, setAmount]                     = useState("");
   const [description, setDescription]           = useState("");
+  const [expenseLoading, setExpenseLoading]     = useState(false);
+  const [expenseError, setExpenseError]         = useState("");
 
-  const handleAddExpense = () => {
-    if (!amount.trim()) return;
-    console.log("Adding expense:", { amount, description });
-    setAmount("");
-    setDescription("");
-    setShowExpenseModal(false);
+  const handleAddExpense = async () => {
+    // Validate
+    if (!amount || Number(amount) <= 0) {
+      setExpenseError("Please enter a valid amount greater than 0.");
+      return;
+    }
+    if (!description.trim()) {
+      setExpenseError("Please enter a description.");
+      return;
+    }
+
+    setExpenseLoading(true);
+    setExpenseError("");
+
+    const { success, error } = await addExpense(id, Number(amount), description.trim());
+
+    if (!success) {
+      setExpenseError(error ?? "Something went wrong. Please try again.");
+    } else {
+      console.log("Expense added successfully");
+      setAmount("");
+      setDescription("");
+      setExpenseError("");
+      setShowExpenseModal(false);
+    }
+
+    setExpenseLoading(false);
   };
 
   const handleCancelExpense = () => {
     setAmount("");
     setDescription("");
+    setExpenseError("");
     setShowExpenseModal(false);
   };
 
@@ -248,22 +273,30 @@ export default function GroupDetailPage({ params }) {
                 <span className="ml-2 text-xs text-slate-400">(split equally)</span>
               </div>
 
+              {/* Error message */}
+              {expenseError && (
+                <p className="flex items-center gap-1.5 text-sm text-rose-500">
+                  <span>⚠️</span>{expenseError}
+                </p>
+              )}
+
               {/* Action buttons */}
               <div className="flex gap-3 pt-1">
                 <button
                   type="button"
                   onClick={handleCancelExpense}
-                  className="flex-1 rounded-lg bg-gray-100 py-2.5 text-sm font-medium text-gray-700 transition-all duration-200 hover:bg-gray-200"
+                  disabled={expenseLoading}
+                  className="flex-1 rounded-lg bg-gray-100 py-2.5 text-sm font-medium text-gray-700 transition-all duration-200 hover:bg-gray-200 disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleAddExpense}
-                  disabled={!amount.trim()}
+                  disabled={expenseLoading}
                   className="flex-1 rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-indigo-700 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:ring-offset-2"
                 >
-                  Add Expense
+                  {expenseLoading ? "Adding…" : "Add Expense"}
                 </button>
               </div>
             </div>
