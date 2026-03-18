@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { logout } from "@/services/authService";
+import { createGroup } from "@/services/groupService";
 
 // ── Dummy data ────────────────────────────────────────────────────────────────
 const DUMMY_GROUPS = [
@@ -39,6 +40,8 @@ export default function DashboardPage() {
   const [user, setUser] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [groupName, setGroupName] = useState("");
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalError, setModalError] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -65,15 +68,26 @@ export default function DashboardPage() {
   };
 
   // ── Modal handlers ────────────────────────────────────────────────────────────
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!groupName.trim()) return;
-    console.log("Creating group:", groupName.trim());
-    setGroupName("");
-    setShowModal(false);
+    setModalLoading(true);
+    setModalError("");
+    try {
+      const newGroup = await createGroup(groupName.trim(), user.id);
+      console.log("Group created successfully:", newGroup);
+      setGroupName("");
+      setShowModal(false);
+    } catch (err) {
+      setModalError(err?.message ?? "Something went wrong. Please try again.");
+    } finally {
+      setModalLoading(false);
+    }
   };
 
   const handleCancel = () => {
+    if (modalLoading) return; // prevent closing mid-request
     setGroupName("");
+    setModalError("");
     setShowModal(false);
   };
 
@@ -232,29 +246,72 @@ export default function DashboardPage() {
               <input
                 type="text"
                 value={groupName}
-                onChange={(e) => setGroupName(e.target.value)}
+                onChange={(e) => {
+                  setGroupName(e.target.value);
+                  if (modalError) setModalError("");
+                }}
                 onKeyDown={(e) => e.key === "Enter" && handleCreate()}
                 placeholder="Enter group name"
                 autoFocus
-                className="w-full rounded-lg border border-gray-300 p-3 text-sm text-gray-800 placeholder-gray-400 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                disabled={modalLoading}
+                className={`w-full rounded-lg border p-3 text-sm text-gray-800 placeholder-gray-400 transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-gray-50 ${
+                  modalError
+                    ? "border-rose-400 focus:border-rose-400 focus:ring-rose-200"
+                    : "border-gray-300 focus:border-indigo-500 focus:ring-indigo-200"
+                }`}
               />
+
+              {/* Inline error message */}
+              {modalError && (
+                <p className="flex items-center gap-1.5 text-sm text-rose-600">
+                  <span aria-hidden>⚠️</span>
+                  {modalError}
+                </p>
+              )}
 
               {/* Action buttons */}
               <div className="flex items-center justify-end gap-3 pt-1">
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-all duration-200 hover:bg-gray-200"
+                  disabled={modalLoading}
+                  className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-all duration-200 hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleCreate}
-                  disabled={!groupName.trim()}
-                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-indigo-700 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:ring-offset-2"
+                  disabled={!groupName.trim() || modalLoading}
+                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-indigo-700 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:ring-offset-2"
                 >
-                  Create
+                  {modalLoading ? (
+                    <>
+                      <svg
+                        className="h-4 w-4 animate-spin"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v8H4z"
+                        />
+                      </svg>
+                      Creating…
+                    </>
+                  ) : (
+                    "Create"
+                  )}
                 </button>
               </div>
             </div>
