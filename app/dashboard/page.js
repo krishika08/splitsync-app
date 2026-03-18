@@ -4,40 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { logout } from "@/services/authService";
-import { createGroup } from "@/services/groupService";
+import { createGroup, getUserGroups } from "@/services/groupService";
 
-// ── Dummy data ────────────────────────────────────────────────────────────────
-const DUMMY_GROUPS = [
-  {
-    id: 1,
-    name: "Trip to Goa",
-    emoji: "🏖️",
-    members: 5,
-    balance: "+₹1,200",
-    positive: true,
-  },
-  {
-    id: 2,
-    name: "Roommates",
-    emoji: "🏠",
-    members: 3,
-    balance: "-₹850",
-    positive: false,
-  },
-  {
-    id: 3,
-    name: "Office Team",
-    emoji: "💼",
-    members: 8,
-    balance: "+₹340",
-    positive: true,
-  },
-];
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [groups, setGroups] = useState([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [modalLoading, setModalLoading] = useState(false);
@@ -51,11 +26,20 @@ export default function DashboardPage() {
         router.push("/login");
       } else {
         setUser(data.user);
+        fetchGroups();
       }
       setLoading(false);
     };
     checkUser();
   }, [router]);
+
+  // ── Fetch real groups ─────────────────────────────────────────────────────────
+  const fetchGroups = async () => {
+    setLoadingGroups(true);
+    const { data, error } = await getUserGroups();
+    if (!error) setGroups(data ?? []);
+    setLoadingGroups(false);
+  };
 
   const handleLogout = async () => {
     try {
@@ -72,17 +56,16 @@ export default function DashboardPage() {
     if (!groupName.trim()) return;
     setModalLoading(true);
     setModalError("");
-    try {
-      const newGroup = await createGroup(groupName.trim());
-
-      console.log("Group created successfully:", newGroup);
+    const { success, data, error } = await createGroup(groupName.trim());
+    if (!success) {
+      setModalError(error ?? "Something went wrong. Please try again.");
+    } else {
+      console.log("Group created successfully:", data);
       setGroupName("");
       setShowModal(false);
-    } catch (err) {
-      setModalError(err?.message ?? "Something went wrong. Please try again.");
-    } finally {
-      setModalLoading(false);
+      fetchGroups(); // refresh list
     }
+    setModalLoading(false);
   };
 
   const handleCancel = () => {
@@ -163,49 +146,74 @@ export default function DashboardPage() {
         </div>
 
         {/* ── Group cards ── */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {DUMMY_GROUPS.map((group) => (
-            <div
-              key={group.id}
-              className="group cursor-pointer rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-violet-200"
+        {loadingGroups ? (
+          /* Loading skeleton */
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-11 w-11 animate-pulse rounded-xl bg-slate-100" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3.5 w-2/3 animate-pulse rounded bg-slate-100" />
+                    <div className="h-3 w-1/3 animate-pulse rounded bg-slate-100" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : groups.length === 0 ? (
+          /* Empty state */
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white py-16 text-center shadow-sm">
+            <span className="text-4xl">🗂️</span>
+            <p className="mt-3 text-base font-semibold text-slate-700">
+              No groups yet
+            </p>
+            <p className="mt-1 text-sm text-slate-400">
+              Create one to start splitting expenses!
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowModal(true)}
+              className="mt-5 inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-indigo-700 hover:scale-[1.02]"
             >
-              {/* Icon + name */}
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50 text-2xl">
-                  {group.emoji}
-                </div>
-                <div>
-                  <p className="font-semibold text-slate-900 group-hover:text-violet-700 transition-colors">
-                    {group.name}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {group.members} members
-                  </p>
+              <span className="text-base leading-none">+</span>
+              Create Group
+            </button>
+          </div>
+        ) : (
+          /* Real group cards */
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {groups.map((group) => (
+              <div
+                key={group.id}
+                className="group cursor-pointer rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-md"
+              >
+                {/* Icon + name */}
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-2xl">
+                    🗂️
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900 transition-colors group-hover:text-indigo-700">
+                      {group.name}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      Created{" "}
+                      {new Date(group.created_at).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </p>
+                  </div>
                 </div>
               </div>
-
-              {/* Divider */}
-              <div className="my-4 h-px bg-slate-100" />
-
-              {/* Balance */}
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500">Your balance</span>
-                <span
-                  className={`text-sm font-semibold ${
-                    group.positive ? "text-emerald-600" : "text-rose-500"
-                  }`}
-                >
-                  {group.balance}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Empty-state hint (shown when no real groups yet) */}
-        <p className="mt-6 text-center text-xs text-slate-400">
-          Showing sample groups · Real groups will appear here once created.
-        </p>
+            ))}
+          </div>
+        )}
       </main>
 
       {/* ── Create Group Modal ── */}

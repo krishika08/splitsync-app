@@ -47,7 +47,7 @@ export async function addMember(groupId, userId) {
   }
 }
 
-// Get all groups that a user belongs to
+// Get all groups created by the current user
 export async function getUserGroups() {
   try {
     const {
@@ -56,19 +56,17 @@ export async function getUserGroups() {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return { success: false, error: "Not authenticated" };
+      return { data: null, error: "Not authenticated" };
     }
 
     const { data, error } = await supabase
-      .from("group_members")
-      .select("groups(id, name, created_at)")
-      .eq("user_id", user.id);
+      .from("groups")
+      .select("id, name, created_at")
+      .eq("created_by", user.id)
+      .order("created_at", { ascending: false });
 
-    if (error) return { success: false, error: error.message };
-
-    // Return a clean array of group objects
-    return { success: true, data: data.map((entry) => entry.groups) };
+    return { data, error: error?.message ?? null };
   } catch (err) {
-    return { success: false, error: err.message };
+    return { data: null, error: err.message };
   }
 }
