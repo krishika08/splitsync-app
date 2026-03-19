@@ -6,6 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 import { addExpense, getExpenses } from "@/services/expenseService";
 import { createSplits } from "@/services/splitService";
 import { calculateBalances } from "@/services/balanceService";
+import { settleUp } from "@/services/settlementService";
+import { supabase } from "@/lib/supabaseClient";
 
 function formatMoney(amount) {
   const num = typeof amount === "number" ? amount : Number(amount);
@@ -42,8 +44,10 @@ export default function GroupDetailPage() {
   const [expensesLoading, setExpensesLoading] = useState(false);
   const [expensesError, setExpensesError] = useState("");
 
-   const [balances, setBalances] = useState([]);
-   const [loadingBalances, setLoadingBalances] = useState(false);
+  const [balances, setBalances] = useState([]);
+  const [loadingBalances, setLoadingBalances] = useState(false);
+  const [settleLoadingId, setSettleLoadingId] = useState(null);
+  const [settleError, setSettleError] = useState("");
 
   const loadExpenses = async (groupId) => {
     if (!groupId) return;
@@ -59,31 +63,31 @@ export default function GroupDetailPage() {
     setExpensesLoading(false);
   };
 
+  const loadBalances = async (groupId) => {
+    if (!groupId) return;
+    setLoadingBalances(true);
+    try {
+      const result = await calculateBalances(groupId);
+      if (Array.isArray(result?.data)) {
+        setBalances(result.data);
+      } else if (Array.isArray(result)) {
+        setBalances(result);
+      } else {
+        setBalances([]);
+      }
+    } catch (err) {
+      setBalances([]);
+    } finally {
+      setLoadingBalances(false);
+    }
+  };
+
   useEffect(() => {
     loadExpenses(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
-    const loadBalances = async (groupId) => {
-      if (!groupId) return;
-      setLoadingBalances(true);
-      try {
-        const result = await calculateBalances(groupId);
-        if (Array.isArray(result?.data)) {
-          setBalances(result.data);
-        } else if (Array.isArray(result)) {
-          setBalances(result);
-        } else {
-          setBalances([]);
-        }
-      } catch (err) {
-        setBalances([]);
-      } finally {
-        setLoadingBalances(false);
-      }
-    };
-
     loadBalances(id);
   }, [id]);
 
@@ -184,6 +188,53 @@ export default function GroupDetailPage() {
     }
 
     setExpenseLoading(false);
+  };
+
+  const handleSettleUp = async (balanceItem) => {
+    if (!id) return;
+
+    const raw =
+      typeof balanceItem?.balance === "number"
+        ? balanceItem.balance
+        : Number(balanceItem?.balance ?? 0);
+    const amountAbs = Math.abs(raw);
+    const otherUserId = balanceItem?.user_id ?? balanceItem?.id;
+    const key = otherUserId ?? balanceItem?.id;
+
+    if (!otherUserId || amountAbs <= 0) return;
+
+    setSettleLoadingId(key);
+    setSettleError("");
+
+    try {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (error || !user) {
+        setSettleError("You must be signed in to settle up.");
+        return;
+      }
+
+      const currentUserId = user.id;
+
+      const result = await settleUp(id, currentUserId, otherUserId, amountAbs);
+
+      if (!result?.success) {
+        setSettleError(
+          result?.error ?? "Could not settle this balance. Please try again."
+        );
+        return;
+      }
+
+      // Refresh balances after a successful settlement
+      await loadBalances(id);
+    } catch (err) {
+      setSettleError(err?.message ?? "Something went wrong while settling up.");
+    } finally {
+      setSettleLoadingId(null);
+    }
   };
 
   const handleCancelExpense = () => {
@@ -319,43 +370,67 @@ export default function GroupDetailPage() {
               No balances yet
             </div>
           ) : (
-            <div className="space-y-2">
-              {balances.map((b, idx) => {
-                const raw =
-                  typeof b?.balance === "number"
-                    ? b.balance
-                    : Number(b?.balance ?? 0);
-                const isPositive = raw > 0;
-                const isNegative = raw < 0;
-                const amountAbs = Math.abs(raw);
+            <>
+              <div className="space-y-2">
+                {balances.map((b, idx) => {
+                  const raw =
+                    typeof b?.balance === "number"
+                      ? b.balance
+                      : Number(b?.balance ?? 0);
+                  const isPositive = raw > 0;
+                  const isNegative = raw < 0;
+                  const amountAbs = Math.abs(raw);
+                  const key = b.id ?? b.user_id ?? idx;
+                  const isSettling = settleLoadingId === key;
 
-                return (
-                  <div
-                    key={b.id ?? idx}
-                    className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm"
-                  >
-                    <span className="text-slate-700">
-                      {isPositive
-                        ? "You are owed"
-                        : isNegative
-                        ? "You owe"
-                        : "Settled up"}
-                    </span>
-                    <span
-                      className={`font-semibold ${
-                        isPositive
-                          ? "text-emerald-600"
-                          : isNegative
-                          ? "text-rose-600"
-                          : "text-slate-500"
-                      }`}
+                  return (
+                    <div
+                      key={key}
+                      className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm"
                     >
-                      {amountAbs > 0 ? formatMoney(amountAbs) : "₹0"}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+                      <div className="flex flex-col">
+                        <span className="text-slate-700">
+                          {isPositive
+                            ? "You are owed"
+                            : isNegative
+                            ? "You owe"
+                            : "Settled up"}
+                        </span>
+                        <span
+                          className={`font-semibold ${
+                            isPositive
+                              ? "text-emerald-600"
+                              : isNegative
+                              ? "text-rose-600"
+                              : "text-slate-500"
+                          }`}
+                        >
+                          {amountAbs > 0 ? formatMoney(amountAbs) : "₹0"}
+                        </span>
+                      </div>
+
+                      {isNegative ? (
+                        <button
+                          type="button"
+                          onClick={() => handleSettleUp(b)}
+                          disabled={isSettling}
+                          className="ml-3 inline-flex items-center rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {isSettling ? "Settling…" : "Settle Up"}
+                        </button>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {settleError && (
+                <p className="mt-3 text-xs text-rose-600 flex items-center gap-1.5">
+                  <span>⚠️</span>
+                  {settleError}
+                </p>
+              )}
+            </>
           )}
         </div>
 
