@@ -39,6 +39,8 @@ export default function DashboardPage() {
   const [groupName, setGroupName]       = useState("");
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError, setModalError]     = useState("");
+  const [modalSuccess, setModalSuccess] = useState("");
+  const [isClosing, setIsClosing]       = useState(false);
   const router = useRouter();
 
   const fetchGroups = useCallback(async (userId) => {
@@ -78,13 +80,25 @@ export default function DashboardPage() {
     }
   };
 
+  const closeSmoothly = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setShowModal(false);
+      setIsClosing(false);
+      setGroupName("");
+      setModalError("");
+      setModalSuccess("");
+    }, 200);
+  };
+
   const handleCreate = async () => {
     if (!groupName.trim()) return;
     setModalLoading(true);
     setModalError("");
+    setModalSuccess("");
     const { success, data, error } = await createGroup(groupName.trim());
     if (!success) {
-      setModalError(error ?? "Something went wrong. Please try again.");
+      setModalError(error ?? "Oops! Something went wrong creating your group. Please try again.");
     } else {
       console.log("Group created successfully:", data);
       // After createGroup, refresh groups using getUserGroups()
@@ -101,26 +115,28 @@ export default function DashboardPage() {
         else setModalError(result.error ?? "Failed to fetch groups.");
       }
 
+      setModalSuccess("🎉 Group created successfully!");
       setGroupName("");
-      setShowModal(false);
+      
+      setTimeout(() => {
+        closeSmoothly();
+      }, 1500);
     }
     setModalLoading(false);
   };
 
   const handleCancel = () => {
     if (modalLoading) return;
-    setGroupName("");
-    setModalError("");
-    setShowModal(false);
+    closeSmoothly();
   };
 
   // ── Auth loading ─────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-[#0f0f1a]">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
-          <p className="text-sm text-slate-400 animate-pulse">Signing you in…</p>
+      <div className="min-h-screen w-full flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
+          <p className="text-sm text-slate-500 animate-pulse">Signing you in…</p>
         </div>
       </div>
     );
@@ -130,7 +146,7 @@ export default function DashboardPage() {
 
   // ── Dashboard ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#0f0f1a] text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
 
       {/* keyframes */}
       <style>{`
@@ -138,6 +154,15 @@ export default function DashboardPage() {
           from { opacity: 0; transform: scale(0.95) translateY(8px); }
           to   { opacity: 1; transform: scale(1)    translateY(0);   }
         }
+        @keyframes modalFadeOut {
+          from { opacity: 1; transform: scale(1) translateY(0); }
+          to   { opacity: 0; transform: scale(0.95) translateY(8px); }
+        }
+        @keyframes fadeOut {
+          from { opacity: 1; }
+          to   { opacity: 0; }
+        }
+        .fade-out { animation: fadeOut 0.2s ease-in forwards; }
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(16px); }
           to   { opacity: 1; transform: translateY(0);    }
@@ -149,28 +174,28 @@ export default function DashboardPage() {
       `}</style>
 
       {/* ── Sticky nav ── */}
-      <nav className="sticky top-0 z-20 border-b border-white/5 bg-[#0f0f1a]/80 backdrop-blur-xl">
+      <nav className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
           {/* Brand */}
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/30">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md">
               <span className="text-sm">💸</span>
             </div>
-            <span className="text-base font-bold tracking-tight">SplitSync</span>
+            <span className="text-xl font-semibold text-gray-800">SplitSync</span>
           </div>
 
           {/* Right side */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             {/* user chip */}
-            <div className="hidden sm:flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
-              <div className="h-5 w-5 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center text-[10px] font-bold">
+            <div className="hidden sm:flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5">
+              <div className="h-5 w-5 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center text-[10px] font-bold text-white">
                 {username.slice(0, 1).toUpperCase()}
               </div>
-              <span className="text-xs text-slate-300">{user?.email}</span>
+              <span className="text-xs text-slate-600">{user?.email}</span>
             </div>
             <button
               onClick={handleLogout}
-              className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
+              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
             >
               Logout
             </button>
@@ -179,24 +204,20 @@ export default function DashboardPage() {
       </nav>
 
       {/* ── Hero section ── */}
-      <div className="relative overflow-hidden">
-        {/* glow blobs */}
-        <div className="pointer-events-none absolute -top-20 left-1/4 h-72 w-72 rounded-full bg-indigo-600/20 blur-3xl" />
-        <div className="pointer-events-none absolute -top-10 right-1/3 h-56 w-56 rounded-full bg-violet-600/20 blur-3xl" />
-
+      <div className="relative overflow-hidden bg-white border-b border-slate-200">
         <div className="relative mx-auto max-w-5xl px-4 pt-10 pb-8 sm:px-6">
-          <p className="fade-up text-xs font-semibold uppercase tracking-widest text-indigo-400">
+          <p className="fade-up text-xs font-semibold uppercase tracking-widest text-indigo-600">
             Dashboard
           </p>
-          <h1 className="fade-up fade-up-d1 mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">
-            Hey, <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">{username}</span> 👋
+          <h1 className="fade-up fade-up-d1 mt-2 text-xl font-semibold text-gray-800">
+            Hey, <span className="text-indigo-600">{username}</span> 👋
           </h1>
-          <p className="fade-up fade-up-d2 mt-1 text-sm text-slate-400">
+          <p className="fade-up fade-up-d2 mt-1 text-sm text-slate-500">
             {user?.email} · {groups.length} group{groups.length !== 1 ? "s" : ""}
           </p>
 
           {/* Stats row */}
-          <div className="fade-up fade-up-d3 mt-6 grid grid-cols-3 gap-3 sm:gap-4">
+          <div className="fade-up fade-up-d3 mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
             {[
               { label: "Groups",   value: groups.length, icon: "🗂️" },
               { label: "Expenses", value: "—",           icon: "🧾" },
@@ -204,11 +225,11 @@ export default function DashboardPage() {
             ].map((s) => (
               <div
                 key={s.label}
-                className="rounded-2xl border border-white/5 bg-white/5 p-4 backdrop-blur-sm"
+                className="rounded-2xl border border-slate-100 bg-white shadow-md p-4 sm:p-6"
               >
                 <span className="text-xl">{s.icon}</span>
-                <p className="mt-2 text-2xl font-bold">{s.value}</p>
-                <p className="text-xs text-slate-400">{s.label}</p>
+                <p className="mt-2 text-xl font-semibold text-gray-800">{s.value}</p>
+                <p className="text-xs text-slate-500">{s.label}</p>
               </div>
             ))}
           </div>
@@ -216,13 +237,13 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Groups section ── */}
-      <main className="mx-auto max-w-5xl px-4 pb-16 sm:px-6">
+      <main className="mx-auto max-w-5xl px-4 pt-8 pb-16 sm:px-6">
         {/* Section header */}
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-200">Your Groups</h2>
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-800">Your Groups</h2>
           <button
             onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:bg-indigo-500 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-md transition-all hover:bg-indigo-700 hover:scale-[1.02]"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
             Create Group
@@ -231,58 +252,57 @@ export default function DashboardPage() {
 
         {/* Cards */}
         {loadingGroups ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="rounded-2xl border border-white/5 bg-white/5 p-5">
-                <div className="flex items-center gap-3">
-                  <div className="h-11 w-11 animate-pulse rounded-xl bg-white/10" />
+              <div key={i} className="rounded-2xl border border-slate-100 bg-white shadow-md p-6">
+                <div className="flex items-center gap-4">
+                  <div className="h-11 w-11 animate-pulse rounded-full bg-slate-200" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-3.5 w-2/3 animate-pulse rounded bg-white/10" />
-                    <div className="h-3 w-1/3 animate-pulse rounded bg-white/10" />
+                    <div className="h-3.5 w-2/3 animate-pulse rounded bg-slate-200" />
+                    <div className="h-3 w-1/3 animate-pulse rounded bg-slate-200" />
                   </div>
                 </div>
               </div>
             ))}
           </div>
         ) : groups.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.03] py-20 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 text-3xl">
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white py-20 text-center shadow-sm">
+            <div className="flex h-16 w-16 items-center justify-center text-4xl">
               🗂️
             </div>
-            <p className="mt-4 text-base font-semibold text-slate-200">
-              No groups yet. Create your first group!
+            <p className="mt-4 text-xl font-semibold text-gray-800">
+              No groups yet.
             </p>
+            <p className="mt-2 text-sm text-slate-500">Create your first group to start splitting!</p>
             <button
               onClick={() => setShowModal(true)}
-              className="mt-6 inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:bg-indigo-500 hover:scale-[1.02] hover:shadow-lg"
+              className="mt-6 inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-md transition-all hover:bg-indigo-700 hover:scale-[1.02]"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
               Create Group
             </button>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {groups.map((group, i) => {
               const a = accent(i);
               return (
                 <Link
                   key={group.id}
                   href={`/group/${group.id}`}
-                  className={`group relative overflow-hidden rounded-2xl border border-white/5 bg-white/5 p-5 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 hover:bg-white/[0.08] hover:scale-[1.02] hover:shadow-lg ${a.border}`}
+                  className={`group relative overflow-hidden rounded-2xl border border-slate-100 bg-white p-6 shadow-md transition-all hover:-translate-y-1 hover:shadow-lg hover:scale-[1.02] ${a.border}`}
                 >
-                  {/* gradient bar top */}
-                  <div className={`absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r ${a.bg} opacity-70`} />
+                  <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${a.bg} opacity-80`} />
 
-                  {/* Icon + name */}
-                  <div className="flex items-start gap-3">
-                    <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${a.bg} text-lg shadow-lg`}>
+                  <div className="flex items-start gap-4">
+                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${a.bg} text-lg shadow-sm`}>
                       <Avatar name={group.name} />
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate font-semibold text-slate-100 transition-colors group-hover:text-white">
+                      <p className="truncate text-xl font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors">
                         {group.name}
                       </p>
-                      <p className="mt-0.5 text-xs text-slate-500">
+                      <p className="mt-1 text-xs text-slate-500">
                         {new Date(group.created_at).toLocaleDateString("en-IN", {
                           day: "numeric", month: "short", year: "numeric",
                         })}
@@ -290,12 +310,11 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* Footer */}
-                  <div className="mt-4 flex items-center justify-between">
-                    <span className={`rounded-full ${a.light} ${a.text} px-2.5 py-0.5 text-xs font-medium`}>
+                  <div className="mt-6 flex items-center justify-between">
+                    <span className={`rounded-full ${a.light} ${a.text} px-2.5 py-1 text-xs font-semibold`}>
                       Active
                     </span>
-                    <svg className="h-4 w-4 text-slate-500 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+                    <svg className="h-5 w-5 text-slate-400 transition-transform group-hover:translate-x-1 group-hover:text-indigo-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
                   </div>
                 </Link>
               );
@@ -307,33 +326,33 @@ export default function DashboardPage() {
       {/* ── Create Group Modal ── */}
       {showModal && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center"
+          className={`fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 backdrop-blur-sm sm:items-center sm:p-4 ${isClosing ? "fade-out" : ""}`}
           onClick={(e) => e.target === e.currentTarget && handleCancel()}
         >
           <div
-            className="w-full max-w-md rounded-t-3xl bg-[#18182a] p-6 shadow-2xl sm:rounded-3xl"
-            style={{ animation: "modalFadeScale 0.22s ease-out forwards" }}
+            className="w-full max-w-md rounded-t-2xl sm:rounded-2xl bg-white p-6 shadow-md max-h-[90vh] overflow-y-auto"
+            style={{ animation: isClosing ? "modalFadeOut 0.2s ease-in forwards" : "modalFadeScale 0.22s ease-out forwards" }}
           >
             {/* Handle (mobile) */}
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/10 sm:hidden" />
+            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-200 sm:hidden" />
 
             {/* Header */}
-            <div className="mb-5 flex items-center justify-between">
+            <div className="mb-6 flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold text-white">Create a Group</h2>
-                <p className="mt-0.5 text-sm text-slate-400">Give your split group a name.</p>
+                <h2 className="text-xl font-semibold text-gray-800">Create a Group</h2>
+                <p className="mt-1 text-sm text-slate-500">Give your split group a name.</p>
               </div>
               <button
                 onClick={handleCancel}
                 disabled={modalLoading}
-                className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/5 text-slate-400 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 ✕
               </button>
             </div>
 
             {/* Input */}
-            <div className="space-y-3">
+            <div className="space-y-4">
               <input
                 type="text"
                 value={groupName}
@@ -342,35 +361,41 @@ export default function DashboardPage() {
                 placeholder="e.g. Trip to Goa, Roommates…"
                 autoFocus
                 disabled={modalLoading}
-                className={`w-full rounded-xl border bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${
+                className={`w-full rounded-lg border bg-white px-4 py-3 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all duration-200 focus:ring-4 disabled:cursor-not-allowed disabled:opacity-50 hover:border-slate-300 ${
                   modalError
-                    ? "border-rose-500/60 focus:ring-rose-500/30"
-                    : "border-white/10 focus:border-indigo-500/60 focus:ring-indigo-500/20"
+                    ? "border-rose-300 focus:ring-rose-200"
+                    : "border-slate-300 focus:border-indigo-500 focus:ring-indigo-500/20"
                 }`}
               />
 
+              {modalSuccess && (
+                <p className="flex items-center gap-1.5 text-sm font-medium text-emerald-600">
+                  {modalSuccess}
+                </p>
+              )}
+
               {modalError && (
-                <p className="flex items-center gap-1.5 text-sm text-rose-400">
+                <p className="flex items-center gap-1.5 text-sm font-medium text-red-500">
                   <span>⚠️</span>{modalError}
                 </p>
               )}
 
-              <div className="flex gap-2 pt-1">
+              <div className="flex gap-4 pt-2">
                 <button
                   onClick={handleCancel}
                   disabled={modalLoading}
-                  className="flex-1 rounded-xl border border-white/10 bg-white/5 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/10 disabled:opacity-50"
+                  className="flex-1 rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:bg-slate-200 disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleCreate}
                   disabled={!groupName.trim() || modalLoading}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:bg-indigo-500 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:scale-[1.02] hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 focus:ring-4 focus:ring-indigo-500/20"
                 >
                   {modalLoading ? (
                     <>
-                      <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <svg className="h-4 w-4 animate-spin outline-none" viewBox="0 0 24 24" fill="none">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
                       </svg>

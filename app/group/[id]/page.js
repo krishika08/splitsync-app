@@ -34,6 +34,8 @@ export default function GroupDetailPage() {
   const [description, setDescription]           = useState("");
   const [expenseLoading, setExpenseLoading]     = useState(false);
   const [expenseError, setExpenseError]         = useState("");
+  const [expenseSuccess, setExpenseSuccess]     = useState("");
+  const [isClosing, setIsClosing]               = useState(false);
 
   const [selectedMembers, setSelectedMembers]   = useState(
     () => MOCK_MEMBERS.map((m) => m.id)
@@ -123,12 +125,13 @@ export default function GroupDetailPage() {
       return;
     }
     if (selectedMembers.length === 0) {
-      setExpenseError("Please select at least one member to split with.");
+      setExpenseError("Please select at least one member to share the cost with.");
       return;
     }
 
     setExpenseLoading(true);
     setExpenseError("");
+    setExpenseSuccess("");
 
     const optimisticExpense = {
       id: `optimistic-${Date.now()}`,
@@ -143,7 +146,7 @@ export default function GroupDetailPage() {
     const result = await addExpense(id, Number(amount), description.trim());
 
     if (!result.success) {
-      setExpenseError(result.error ?? "Something went wrong. Please try again.");
+      setExpenseError(result.error ?? "Oops! Something went wrong adding your expense. Please try again.");
       // remove optimistic row
       setExpenses((prev) => prev.filter((e) => e.id !== optimisticExpense.id));
     } else {
@@ -185,10 +188,20 @@ export default function GroupDetailPage() {
       await loadExpenses(id);
       await loadBalances(id);
 
+      setExpenseSuccess("🎉 Expense added successfully!");
       setAmount("");
       setDescription("");
       setSelectedMembers(MOCK_MEMBERS.map((m) => m.id));
-      setShowExpenseModal(false);
+      
+      // Auto-hide success and close modal
+      setTimeout(() => {
+        setIsClosing(true);
+        setTimeout(() => {
+          setShowExpenseModal(false);
+          setIsClosing(false);
+          setExpenseSuccess("");
+        }, 200);
+      }, 2000);
     }
 
     setExpenseLoading(false);
@@ -242,11 +255,16 @@ export default function GroupDetailPage() {
   };
 
   const handleCancelExpense = () => {
-    setAmount("");
-    setDescription("");
-    setSelectedMembers(MOCK_MEMBERS.map((m) => m.id));
-    setExpenseError("");
-    setShowExpenseModal(false);
+    setIsClosing(true);
+    setTimeout(() => {
+      setAmount("");
+      setDescription("");
+      setSelectedMembers(MOCK_MEMBERS.map((m) => m.id));
+      setExpenseError("");
+      setExpenseSuccess("");
+      setShowExpenseModal(false);
+      setIsClosing(false);
+    }, 200);
   };
 
   return (
@@ -260,6 +278,15 @@ export default function GroupDetailPage() {
           from { opacity: 0; transform: scale(0.95) translateY(6px); }
           to   { opacity: 1; transform: scale(1)    translateY(0);   }
         }
+        @keyframes modalFadeOut {
+          from { opacity: 1; transform: scale(1) translateY(0); }
+          to   { opacity: 0; transform: scale(0.95) translateY(8px); }
+        }
+        @keyframes fadeOut {
+          from { opacity: 1; }
+          to   { opacity: 0; }
+        }
+        .fade-out { animation: fadeOut 0.2s ease-in forwards; }
         .fade-up { animation: fadeUp 0.35s ease-out forwards; }
         .delay-1 { animation-delay: 0.07s; opacity: 0; }
         .delay-2 { animation-delay: 0.14s; opacity: 0; }
@@ -271,7 +298,7 @@ export default function GroupDetailPage() {
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3.5 sm:px-6">
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 shadow-sm transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -279,18 +306,18 @@ export default function GroupDetailPage() {
             Dashboard
           </Link>
 
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-xs shadow">
+          <div className="flex items-center gap-4">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-xs shadow-md">
               💸
             </div>
-            <span className="font-bold tracking-tight text-slate-800">SplitSync</span>
+            <span className="text-xl font-semibold text-gray-800">SplitSync</span>
           </div>
 
           <button
             type="button"
             onClick={() => setShowExpenseModal(true)}
             disabled={expenseLoading}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-200 transition-all duration-200 hover:bg-indigo-700 hover:scale-[1.02] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-md shadow-indigo-200 transition-all duration-200 hover:bg-indigo-700 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -301,27 +328,27 @@ export default function GroupDetailPage() {
       </header>
 
       {/* ── Page body ── */}
-      <main className="mx-auto max-w-4xl p-6 sm:px-6">
+      <main className="mx-auto max-w-4xl p-4 sm:p-6">
 
         {/* ── Group hero ── */}
         <div className="fade-up mb-8">
           <span className="inline-block rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-600">
             Group
           </span>
-          <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
+          <h1 className="mt-2 text-xl font-semibold text-gray-800">
             Group Details
           </h1>
           <p className="mt-1 font-mono text-xs text-slate-400">ID: {id}</p>
         </div>
 
         {/* ── Stats row ── */}
-        <div className="fade-up delay-1 mb-6 grid grid-cols-3 gap-3 sm:gap-4">
+        <div className="fade-up delay-1 mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
           {[
             { label: "Members",  value: "—", icon: "👥", color: "from-violet-500 to-indigo-500" },
             { label: "Expenses", value: String(expenseStats.count), icon: "🧾", color: "from-pink-500 to-rose-400"     },
             { label: "Total",  value: formatMoney(expenseStats.total), icon: "💰", color: "from-emerald-400 to-teal-500"  },
           ].map((s) => (
-            <div key={s.label} className="rounded-xl bg-white p-4 shadow-md ring-1 ring-slate-100 transition-all duration-200 hover:shadow-lg hover:scale-[1.02]">
+            <div key={s.label} className="rounded-2xl bg-white p-4 shadow-md ring-1 ring-slate-100 transition-all duration-200 hover:shadow-lg hover:scale-[1.02]">
               <div className={`inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br ${s.color} text-lg shadow-sm`}>
                 {s.icon}
               </div>
@@ -332,18 +359,18 @@ export default function GroupDetailPage() {
         </div>
 
         {/* ── Group Info card ── */}
-        <div className="fade-up delay-2 mb-5 rounded-xl bg-white p-6 shadow-md ring-1 ring-slate-100 transition-all duration-200 hover:shadow-lg hover:scale-[1.02]">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-xl text-white shadow">
+        <div className="fade-up delay-2 mb-5 rounded-2xl bg-white p-4 sm:p-6 shadow-md ring-1 ring-slate-100 transition-all duration-200 hover:shadow-lg hover:scale-[1.02] overflow-hidden">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-xl text-white shadow-md">
               🗂️
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-800">Group Details</h2>
+              <h2 className="text-xl font-semibold text-gray-800">Group Details</h2>
               <p className="text-sm text-slate-400">Expenses and members will appear below.</p>
             </div>
           </div>
 
-          <div className="mt-5 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
             {[
               { label: "Created by", value: "You"       },
               { label: "Created on", value: "Today"     },
@@ -358,10 +385,10 @@ export default function GroupDetailPage() {
         </div>
 
         {/* ── Balances card ── */}
-        <div className="fade-up delay-3 mb-5 rounded-xl bg-white p-6 shadow-md ring-1 ring-slate-100 transition-all duration-200 hover:shadow-lg hover:scale-[1.02]">
-          <div className="mb-4 flex items-center justify-between">
+        <div className="fade-up delay-3 mb-5 rounded-2xl bg-white p-4 sm:p-6 shadow-md ring-1 ring-slate-100 transition-all duration-200 hover:shadow-lg hover:scale-[1.02] overflow-hidden">
+          <div className="mb-6 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-slate-800">Balances</h2>
+              <h2 className="text-xl font-semibold text-gray-800">Balances</h2>
               <p className="text-sm text-slate-400">
                 See who owes whom in this group.
               </p>
@@ -414,7 +441,7 @@ export default function GroupDetailPage() {
                   return (
                     <div
                       key={key}
-                      className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3 sm:py-2.5 text-sm"
                     >
                       <div className="flex flex-col">
                         <span className="text-slate-700">
@@ -442,7 +469,7 @@ export default function GroupDetailPage() {
                           type="button"
                           onClick={() => handleSettleUp(b)}
                           disabled={isSettling || anySettling}
-                          className="ml-3 inline-flex items-center rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="sm:ml-4 inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:scale-[1.02] hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60 w-full sm:w-auto"
                         >
                           {anySettling ? "Settling…" : "Settle Up"}
                         </button>
@@ -463,18 +490,18 @@ export default function GroupDetailPage() {
         </div>
 
         {/* ── Expenses card ── */}
-        <div className="fade-up delay-3 rounded-xl bg-white p-6 shadow-md ring-1 ring-slate-100 transition-all duration-200 hover:shadow-lg hover:scale-[1.02]">
-          <div className="mb-5 flex items-center justify-between">
+        <div className="fade-up delay-3 rounded-2xl bg-white p-4 sm:p-6 shadow-md ring-1 ring-slate-100 transition-all duration-200 hover:shadow-lg hover:scale-[1.02] overflow-hidden">
+          <div className="mb-6 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-slate-800">Expenses</h2>
+              <h2 className="text-xl font-semibold text-gray-800">Expenses</h2>
               <p className="text-sm text-slate-400">Track what everyone owes.</p>
             </div>
             <button
               type="button"
               onClick={() => setShowExpenseModal(true)}
-            className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow transition-all duration-200 hover:bg-indigo-700 hover:scale-[1.02]"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow transition-all duration-200 hover:bg-indigo-700 hover:scale-[1.02]"
             >
-              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
               Add
@@ -506,7 +533,7 @@ export default function GroupDetailPage() {
                 <button
                   type="button"
                   onClick={() => setShowExpenseModal(true)}
-                  className="mt-6 inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-200 transition-all duration-200 hover:bg-indigo-700 hover:scale-[1.02] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:ring-offset-2"
+                  className="mt-6 inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-md shadow-indigo-200 transition-all duration-200 hover:bg-indigo-700 hover:scale-[1.02] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:ring-offset-2"
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -531,13 +558,13 @@ export default function GroupDetailPage() {
                 {expenses.map((e) => (
                   <div
                     key={e.id}
-                    className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
+                    className={`flex items-center justify-between gap-2 rounded-xl border px-3 sm:px-4 py-3 ${
                       e.__optimistic
                         ? "border-indigo-100 bg-indigo-50/50"
                         : "border-slate-100 bg-white"
                     }`}
                   >
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold text-slate-800">
                         {e.description || "Untitled"}
                         {e.__optimistic ? (
@@ -552,8 +579,8 @@ export default function GroupDetailPage() {
                           : "—"}
                       </p>
                     </div>
-                    <div className="ml-4 shrink-0 text-right">
-                      <p className="text-sm font-bold text-slate-900">
+                    <div className="shrink-0 text-right">
+                      <p className="text-sm font-bold text-slate-900 whitespace-nowrap">
                         {formatMoney(e.amount)}
                       </p>
                     </div>
@@ -568,20 +595,20 @@ export default function GroupDetailPage() {
       {/* ── Add Expense Modal ── */}
       {showExpenseModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+          className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm sm:p-4 ${isClosing ? "fade-out" : ""}`}
           onClick={(e) =>
             e.target === e.currentTarget && !expenseLoading && handleCancelExpense()
           }
         >
           <div
-            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
-            style={{ animation: "modalFadeScale 0.2s ease-out forwards" }}
+            className="w-full max-w-md rounded-t-2xl sm:rounded-2xl bg-white p-4 sm:p-6 shadow-xl max-h-[90vh] overflow-y-auto"
+            style={{ animation: isClosing ? "modalFadeOut 0.2s ease-in forwards" : "modalFadeScale 0.2s ease-out forwards" }}
           >
             {/* Modal header */}
-            <div className="mb-5 flex items-start justify-between">
+            <div className="mb-6 flex items-start justify-between">
               <div>
                 <h2 className="text-xl font-semibold text-gray-800">Add Expense</h2>
-                <p className="mt-0.5 text-sm text-gray-500">Split a cost with your group.</p>
+                <p className="mt-1 text-sm text-gray-500">Split a cost with your group.</p>
               </div>
               <button
                 type="button"
@@ -613,7 +640,7 @@ export default function GroupDetailPage() {
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0.00"
                     autoFocus
-                    className="w-full rounded-lg border border-gray-300 py-3 pl-7 pr-4 text-sm text-gray-800 placeholder-gray-400 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                    className="w-full rounded-lg border border-gray-300 py-3 pl-7 pr-4 text-sm text-gray-800 placeholder-gray-400 transition-all duration-200 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 hover:border-gray-400"
                   />
                 </div>
               </div>
@@ -629,7 +656,7 @@ export default function GroupDetailPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleAddExpense()}
                   placeholder="Dinner, Rent, Cab, etc."
-                  className="w-full rounded-lg border border-gray-300 p-3 text-sm text-gray-800 placeholder-gray-400 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  className="w-full rounded-lg border border-gray-300 p-3 text-sm text-gray-800 placeholder-gray-400 transition-all duration-200 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 hover:border-gray-400"
                 />
               </div>
 
@@ -695,20 +722,27 @@ export default function GroupDetailPage() {
                 <span className="ml-2 text-xs text-slate-400">(split equally)</span>
               </div>
 
+              {/* Success message */}
+              {expenseSuccess && (
+                <p className="flex items-center gap-1.5 text-sm font-medium text-emerald-600">
+                  {expenseSuccess}
+                </p>
+              )}
+
               {/* Error message */}
               {expenseError && (
-                <p className="flex items-center gap-1.5 text-sm text-rose-500">
+                <p className="flex items-center gap-1.5 text-sm font-medium text-red-500">
                   <span>⚠️</span>{expenseError}
                 </p>
               )}
 
               {/* Action buttons */}
-              <div className="flex gap-3 pt-1">
+              <div className="flex gap-4 pt-2">
                 <button
                   type="button"
                   onClick={handleCancelExpense}
                   disabled={expenseLoading}
-                  className="flex-1 rounded-lg bg-gray-100 py-2.5 text-sm font-medium text-gray-700 transition-all duration-200 hover:bg-gray-200 disabled:opacity-50"
+                  className="flex-1 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-all duration-200 hover:scale-[1.02] hover:bg-gray-200 disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -716,7 +750,7 @@ export default function GroupDetailPage() {
                   type="button"
                   onClick={handleAddExpense}
                   disabled={expenseLoading}
-                  className="flex-1 rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-indigo-700 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:ring-offset-2"
+                  className="flex-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-indigo-700 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:ring-offset-2"
                 >
                   {expenseLoading ? "Processing…" : "Add Expense"}
                 </button>
