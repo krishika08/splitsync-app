@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { addExpense, getExpenses } from "@/services/expenseService";
 import { createSplits } from "@/services/splitService";
+import { calculateBalances } from "@/services/balanceService";
 
 function formatMoney(amount) {
   const num = typeof amount === "number" ? amount : Number(amount);
@@ -41,6 +42,9 @@ export default function GroupDetailPage() {
   const [expensesLoading, setExpensesLoading] = useState(false);
   const [expensesError, setExpensesError] = useState("");
 
+   const [balances, setBalances] = useState([]);
+   const [loadingBalances, setLoadingBalances] = useState(false);
+
   const loadExpenses = async (groupId) => {
     if (!groupId) return;
     setExpensesLoading(true);
@@ -58,6 +62,29 @@ export default function GroupDetailPage() {
   useEffect(() => {
     loadExpenses(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  useEffect(() => {
+    const loadBalances = async (groupId) => {
+      if (!groupId) return;
+      setLoadingBalances(true);
+      try {
+        const result = await calculateBalances(groupId);
+        if (Array.isArray(result?.data)) {
+          setBalances(result.data);
+        } else if (Array.isArray(result)) {
+          setBalances(result);
+        } else {
+          setBalances([]);
+        }
+      } catch (err) {
+        setBalances([]);
+      } finally {
+        setLoadingBalances(false);
+      }
+    };
+
+    loadBalances(id);
   }, [id]);
 
   const expenseStats = useMemo(() => {
@@ -272,6 +299,64 @@ export default function GroupDetailPage() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* ── Balances card ── */}
+        <div className="fade-up delay-3 mb-5 rounded-xl bg-white p-6 shadow-md ring-1 ring-slate-100">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-slate-800">Balances</h2>
+              <p className="text-sm text-slate-400">
+                See who owes whom in this group.
+              </p>
+            </div>
+          </div>
+
+          {loadingBalances ? (
+            <div className="py-6 text-sm text-slate-500">Loading balances…</div>
+          ) : !balances || balances.length === 0 ? (
+            <div className="rounded-lg bg-slate-50 px-4 py-4 text-sm text-slate-500">
+              No balances yet
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {balances.map((b, idx) => {
+                const raw =
+                  typeof b?.balance === "number"
+                    ? b.balance
+                    : Number(b?.balance ?? 0);
+                const isPositive = raw > 0;
+                const isNegative = raw < 0;
+                const amountAbs = Math.abs(raw);
+
+                return (
+                  <div
+                    key={b.id ?? idx}
+                    className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm"
+                  >
+                    <span className="text-slate-700">
+                      {isPositive
+                        ? "You are owed"
+                        : isNegative
+                        ? "You owe"
+                        : "Settled up"}
+                    </span>
+                    <span
+                      className={`font-semibold ${
+                        isPositive
+                          ? "text-emerald-600"
+                          : isNegative
+                          ? "text-rose-600"
+                          : "text-slate-500"
+                      }`}
+                    >
+                      {amountAbs > 0 ? formatMoney(amountAbs) : "₹0"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* ── Expenses card ── */}
