@@ -34,7 +34,7 @@ export default function GroupDetailPage() {
   const [description, setDescription]           = useState("");
   const [expenseLoading, setExpenseLoading]     = useState(false);
   const [expenseError, setExpenseError]         = useState("");
-  const [expenseSuccess, setExpenseSuccess]     = useState("");
+  const [toast, setToast]                       = useState("");
   const [isClosing, setIsClosing]               = useState(false);
 
   const [selectedMembers, setSelectedMembers]   = useState(
@@ -131,7 +131,6 @@ export default function GroupDetailPage() {
 
     setExpenseLoading(true);
     setExpenseError("");
-    setExpenseSuccess("");
 
     const optimisticExpense = {
       id: `optimistic-${Date.now()}`,
@@ -188,20 +187,9 @@ export default function GroupDetailPage() {
       await loadExpenses(id);
       await loadBalances(id);
 
-      setExpenseSuccess("🎉 Expense added successfully!");
-      setAmount("");
-      setDescription("");
-      setSelectedMembers(MOCK_MEMBERS.map((m) => m.id));
-      
-      // Auto-hide success and close modal
-      setTimeout(() => {
-        setIsClosing(true);
-        setTimeout(() => {
-          setShowExpenseModal(false);
-          setIsClosing(false);
-          setExpenseSuccess("");
-        }, 200);
-      }, 2000);
+      setToast("Expense added successfully!");
+      closeSmoothly();
+      setTimeout(() => setToast(""), 3000);
     }
 
     setExpenseLoading(false);
@@ -247,6 +235,9 @@ export default function GroupDetailPage() {
 
       // Refresh balances after a successful settlement
       await loadBalances(id);
+      
+      setToast("Balance settled successfully!");
+      setTimeout(() => setToast(""), 3000);
     } catch (err) {
       setSettleError(err?.message ?? "Something went wrong while settling up.");
     } finally {
@@ -261,7 +252,6 @@ export default function GroupDetailPage() {
       setDescription("");
       setSelectedMembers(MOCK_MEMBERS.map((m) => m.id));
       setExpenseError("");
-      setExpenseSuccess("");
       setShowExpenseModal(false);
       setIsClosing(false);
     }, 200);
@@ -406,11 +396,8 @@ export default function GroupDetailPage() {
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center rounded-lg bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-                <span className="text-lg">✅</span>
-                <span className="mt-2 font-medium text-slate-700">
-                  All settled up 🎉
-                </span>
+              <div className="flex flex-col items-center justify-center rounded-lg bg-slate-50 px-4 py-8 text-center text-base font-medium text-slate-500">
+                All settled up 🎉
               </div>
             )
           ) : (
@@ -527,7 +514,7 @@ export default function GroupDetailPage() {
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50 text-3xl shadow-inner">
                   🧾
                 </div>
-                <p className="mt-4 text-base font-semibold text-slate-700">
+                <p className="mt-4 text-base font-medium text-slate-500">
                   No expenses yet. Add your first expense!
                 </p>
                 <button
@@ -558,29 +545,44 @@ export default function GroupDetailPage() {
                 {expenses.map((e) => (
                   <div
                     key={e.id}
-                    className={`flex items-center justify-between gap-2 rounded-xl border px-3 sm:px-4 py-3 ${
+                    className={`group flex items-center justify-between gap-3 sm:gap-4 rounded-2xl border p-4 sm:p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 ${
                       e.__optimistic
                         ? "border-indigo-100 bg-indigo-50/50"
                         : "border-slate-100 bg-white"
                     }`}
                   >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold text-slate-800">
-                        {e.description || "Untitled"}
-                        {e.__optimistic ? (
-                          <span className="ml-2 text-xs font-medium text-indigo-600">
-                            Saving…
+                    <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+                      <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-xl border border-slate-100 shadow-inner">
+                        🧾
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-base font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors">
+                          {e.description || "Untitled"}
+                          {e.__optimistic ? (
+                            <span className="ml-2 rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-600">
+                              Saving…
+                            </span>
+                          ) : null}
+                        </p>
+                        <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
+                          <span className="font-medium text-slate-700">
+                            {e.paid_by === "you" ? "You paid" : "Someone paid"}
                           </span>
-                        ) : null}
-                      </p>
-                      <p className="mt-0.5 text-xs text-slate-400">
-                        {e.created_at
-                          ? new Date(e.created_at).toLocaleString()
-                          : "—"}
-                      </p>
+                          <span className="text-slate-300">•</span>
+                          <span>
+                            {e.created_at
+                              ? new Date(e.created_at).toLocaleDateString("en-IN", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric"
+                                })
+                              : "—"}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                     <div className="shrink-0 text-right">
-                      <p className="text-sm font-bold text-slate-900 whitespace-nowrap">
+                      <p className="text-lg font-bold text-gray-900 whitespace-nowrap">
                         {formatMoney(e.amount)}
                       </p>
                     </div>
@@ -722,13 +724,6 @@ export default function GroupDetailPage() {
                 <span className="ml-2 text-xs text-slate-400">(split equally)</span>
               </div>
 
-              {/* Success message */}
-              {expenseSuccess && (
-                <p className="flex items-center gap-1.5 text-sm font-medium text-emerald-600">
-                  {expenseSuccess}
-                </p>
-              )}
-
               {/* Error message */}
               {expenseError && (
                 <p className="flex items-center gap-1.5 text-sm font-medium text-red-500">
@@ -757,6 +752,13 @@ export default function GroupDetailPage() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-4 right-4 z-[60] flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-medium text-white shadow-lg fade-up">
+          <span>✅</span> {toast}
         </div>
       )}
     </div>

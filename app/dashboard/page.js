@@ -39,7 +39,7 @@ export default function DashboardPage() {
   const [groupName, setGroupName]       = useState("");
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError, setModalError]     = useState("");
-  const [modalSuccess, setModalSuccess] = useState("");
+  const [toast, setToast]               = useState("");
   const [isClosing, setIsClosing]       = useState(false);
   const router = useRouter();
 
@@ -87,7 +87,6 @@ export default function DashboardPage() {
       setIsClosing(false);
       setGroupName("");
       setModalError("");
-      setModalSuccess("");
     }, 200);
   };
 
@@ -95,7 +94,6 @@ export default function DashboardPage() {
     if (!groupName.trim()) return;
     setModalLoading(true);
     setModalError("");
-    setModalSuccess("");
     const { success, data, error } = await createGroup(groupName.trim());
     if (!success) {
       setModalError(error ?? "Oops! Something went wrong creating your group. Please try again.");
@@ -115,12 +113,9 @@ export default function DashboardPage() {
         else setModalError(result.error ?? "Failed to fetch groups.");
       }
 
-      setModalSuccess("🎉 Group created successfully!");
-      setGroupName("");
-      
-      setTimeout(() => {
-        closeSmoothly();
-      }, 1500);
+      setToast("Group created successfully!");
+      closeSmoothly();
+      setTimeout(() => setToast(""), 3000);
     }
     setModalLoading(false);
   };
@@ -219,17 +214,39 @@ export default function DashboardPage() {
           {/* Stats row */}
           <div className="fade-up fade-up-d3 mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
             {[
-              { label: "Groups",   value: groups.length, icon: "🗂️" },
-              { label: "Expenses", value: "—",           icon: "🧾" },
-              { label: "Settled",  value: "—",           icon: "✅" },
+              {
+                label: "Total Expenses",
+                value: "₹0.00",
+                icon: "🧾",
+                color: "text-indigo-600",
+                bg: "bg-indigo-50",
+              },
+              {
+                label: "You Owe",
+                value: "₹0.00",
+                icon: "↗️",
+                color: "text-rose-600",
+                bg: "bg-rose-50",
+              },
+              {
+                label: "You Are Owed",
+                value: "₹0.00",
+                icon: "↙️",
+                color: "text-emerald-600",
+                bg: "bg-emerald-50",
+              },
             ].map((s) => (
               <div
                 key={s.label}
-                className="rounded-2xl border border-slate-100 bg-white shadow-md p-4 sm:p-6"
+                className="flex items-center gap-4 rounded-xl border border-slate-100 bg-white p-5 shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
               >
-                <span className="text-xl">{s.icon}</span>
-                <p className="mt-2 text-xl font-semibold text-gray-800">{s.value}</p>
-                <p className="text-xs text-slate-500">{s.label}</p>
+                <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${s.bg} ${s.color} text-xl`}>
+                  {s.icon}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-500">{s.label}</p>
+                  <p className="mt-0.5 text-xl sm:text-2xl font-bold text-gray-800">{s.value}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -270,10 +287,9 @@ export default function DashboardPage() {
             <div className="flex h-16 w-16 items-center justify-center text-4xl">
               🗂️
             </div>
-            <p className="mt-4 text-xl font-semibold text-gray-800">
-              No groups yet.
+            <p className="mt-4 text-base font-medium text-slate-500">
+              No groups yet. Start by creating one!
             </p>
-            <p className="mt-2 text-sm text-slate-500">Create your first group to start splitting!</p>
             <button
               onClick={() => setShowModal(true)}
               className="mt-6 inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-md transition-all hover:bg-indigo-700 hover:scale-[1.02]"
@@ -368,12 +384,6 @@ export default function DashboardPage() {
                 }`}
               />
 
-              {modalSuccess && (
-                <p className="flex items-center gap-1.5 text-sm font-medium text-emerald-600">
-                  {modalSuccess}
-                </p>
-              )}
-
               {modalError && (
                 <p className="flex items-center gap-1.5 text-sm font-medium text-red-500">
                   <span>⚠️</span>{modalError}
@@ -406,6 +416,13 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-4 right-4 z-[60] flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-medium text-white shadow-lg fade-up">
+          <span>✅</span> {toast}
         </div>
       )}
     </div>
