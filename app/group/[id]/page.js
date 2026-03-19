@@ -2,11 +2,18 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState } from "react";
-import { addExpense } from "@/services/expenseService";
+import { useEffect, useMemo, useState } from "react";
+import { addExpense, getExpenses } from "@/services/expenseService";
 
-// ── Placeholder expenses ───────────────────────────────────────────────────────
-const PLACEHOLDER_EXPENSES = [];
+function formatMoney(amount) {
+  const num = typeof amount === "number" ? amount : Number(amount);
+  if (!Number.isFinite(num)) return "—";
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(num);
+}
 
 export default function GroupDetailPage() {
   const params = useParams();
@@ -17,6 +24,37 @@ export default function GroupDetailPage() {
   const [description, setDescription]           = useState("");
   const [expenseLoading, setExpenseLoading]     = useState(false);
   const [expenseError, setExpenseError]         = useState("");
+
+  const [expenses, setExpenses] = useState([]);
+  const [expensesLoading, setExpensesLoading] = useState(false);
+  const [expensesError, setExpensesError] = useState("");
+
+  const loadExpenses = async (groupId) => {
+    if (!groupId) return;
+    setExpensesLoading(true);
+    setExpensesError("");
+    const result = await getExpenses(groupId);
+    if (!result.success) {
+      setExpensesError(result.error ?? "Failed to load expenses.");
+      setExpenses([]);
+    } else {
+      setExpenses(Array.isArray(result.data) ? result.data : []);
+    }
+    setExpensesLoading(false);
+  };
+
+  useEffect(() => {
+    loadExpenses(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  const expenseStats = useMemo(() => {
+    const total = expenses.reduce((sum, e) => {
+      const n = typeof e?.amount === "number" ? e.amount : Number(e?.amount);
+      return Number.isFinite(n) ? sum + n : sum;
+    }, 0);
+    return { count: expenses.length, total };
+  }, [expenses]);
 
   const handleAddExpense = async () => {
     if (!id) {
@@ -36,12 +74,33 @@ export default function GroupDetailPage() {
     setExpenseLoading(true);
     setExpenseError("");
 
-    const { success, error } = await addExpense(id, Number(amount), description.trim());
+    const optimisticExpense = {
+      id: `optimistic-${Date.now()}`,
+      amount: Number(amount),
+      description: description.trim(),
+      paid_by: "you",
+      created_at: new Date().toISOString(),
+      __optimistic: true,
+    };
+    setExpenses((prev) => [optimisticExpense, ...prev]);
 
-    if (!success) {
-      setExpenseError(error ?? "Something went wrong. Please try again.");
+    const result = await addExpense(id, Number(amount), description.trim());
+
+    if (!result.success) {
+      setExpenseError(result.error ?? "Something went wrong. Please try again.");
+      // remove optimistic row
+      setExpenses((prev) => prev.filter((e) => e.id !== optimisticExpense.id));
     } else {
-      console.log("Expense added successfully");
+      // replace optimistic row with the real one
+      if (result.data?.id) {
+        setExpenses((prev) => {
+          const withoutOptimistic = prev.filter((e) => e.id !== optimisticExpense.id);
+          return [result.data, ...withoutOptimistic];
+        });
+      } else {
+        // fallback: just refetch
+        await loadExpenses(id);
+      }
       setAmount("");
       setDescription("");
       setExpenseError("");
@@ -126,8 +185,8 @@ export default function GroupDetailPage() {
         <div className="fade-up delay-1 mb-6 grid grid-cols-3 gap-3 sm:gap-4">
           {[
             { label: "Members",  value: "—", icon: "👥", color: "from-violet-500 to-indigo-500" },
-            { label: "Expenses", value: "—", icon: "🧾", color: "from-pink-500 to-rose-400"     },
-            { label: "Balance",  value: "—", icon: "⚖️", color: "from-emerald-400 to-teal-500"  },
+            { label: "Expenses", value: String(expenseStats.count), icon: "🧾", color: "from-pink-500 to-rose-400"     },
+            { label: "Total",  value: formatMoney(expenseStats.total), icon: "💰", color: "from-emerald-400 to-teal-500"  },
           ].map((s) => (
             <div key={s.label} className="rounded-xl bg-white p-4 shadow-md ring-1 ring-slate-100">
               <div className={`inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br ${s.color} text-lg shadow-sm`}>
@@ -184,7 +243,15 @@ export default function GroupDetailPage() {
             </button>
           </div>
 
-          {PLACEHOLDER_EXPENSES.length === 0 ? (
+          {expensesLoading ? (
+            <div className="py-10 text-center text-sm text-slate-500">
+              Loading expenses…
+            </div>
+          ) : expensesError ? (
+            <div className="rounded-lg border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {expensesError}
+            </div>
+          ) : expenses.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-14 text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50 text-3xl shadow-inner">
                 🧾
@@ -203,7 +270,37 @@ export default function GroupDetailPage() {
               </button>
             </div>
           ) : (
-            <p className="text-sm text-slate-500">Expense list coming soon.</p>
+            <div className="space-y-3">
+              {expenses.map((e) => (
+                <div
+                  key={e.id}
+                  className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
+                    e.__optimistic
+                      ? "border-indigo-100 bg-indigo-50/50"
+                      : "border-slate-100 bg-white"
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-slate-800">
+                      {e.description || "Untitled"}
+                      {e.__optimistic ? (
+                        <span className="ml-2 text-xs font-medium text-indigo-600">
+                          Saving…
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="mt-0.5 text-xs text-slate-400">
+                      {e.created_at ? new Date(e.created_at).toLocaleString() : "—"}
+                    </p>
+                  </div>
+                  <div className="ml-4 shrink-0 text-right">
+                    <p className="text-sm font-bold text-slate-900">
+                      {formatMoney(e.amount)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </main>
