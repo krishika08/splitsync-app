@@ -138,3 +138,73 @@ export async function getExpenses(groupId) {
     return { success: false, error: err.message };
   }
 }
+
+// Calculate net balances (paid - owed) for all users in a group
+export async function calculateBalances(groupId) {
+  try {
+    if (!groupId) return { success: false, error: "Group ID is required" };
+
+    // 1) Fetch all expenses for this group
+    const { data: expenses, error: expensesError } = await supabase
+      .from("expenses")
+      .select("id, amount, paid_by")
+      .eq("group_id", groupId);
+
+    if (expensesError) {
+      return { success: false, error: expensesError.message };
+    }
+
+    if (!expenses || expenses.length === 0) {
+      return { success: true, data: {} };
+    }
+
+    const expenseIds = expenses.map((e) => e.id);
+
+    // 2) Fetch all related splits, restricted by this group's expenses
+    const { data: splits, error: splitsError } = await supabase
+      .from("expense_splits")
+      .select("expense_id, user_id, amount")
+      .in("expense_id", expenseIds);
+
+    if (splitsError) {
+      return { success: false, error: splitsError.message };
+    }
+
+    const balances = {};
+
+    // Helper to add to a user's balance (paid or owed)
+    const addToBalance = (userId, delta) => {
+      if (!userId) return;
+      const current = balances[userId] ?? 0;
+      const next = current + delta;
+      // Keep as Number with 2 decimals max
+      balances[userId] = Number(next.toFixed(2));
+    };
+
+    // 3a) Sum amounts each user paid
+    for (const expense of expenses) {
+      const amt =
+        typeof expense.amount === "number"
+          ? expense.amount
+          : Number(expense.amount);
+      if (!Number.isFinite(amt)) continue;
+      addToBalance(expense.paid_by, amt);
+    }
+
+    // 3b) Subtract what each user owes (from splits)
+    if (Array.isArray(splits)) {
+      for (const split of splits) {
+        const amt =
+          typeof split.amount === "number"
+            ? split.amount
+            : Number(split.amount);
+        if (!Number.isFinite(amt)) continue;
+        addToBalance(split.user_id, -amt);
+      }
+    }
+
+    return { success: true, data: balances };
+  } catch (err) {
+    return { success: false, error: err?.message ?? String(err) };
+  }
+}
