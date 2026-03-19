@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import { saveSettlements } from "./settlementService";
 
 export async function createExpense({
   groupId,
@@ -259,4 +260,57 @@ export function simplifyDebts(balances) {
   }
 
   return txs;
+}
+
+export async function createExpenseAndUpdate({
+  groupId,
+  paidBy,
+  amount,
+  description,
+  members,
+}) {
+  try {
+    // 1. Call createExpense()
+    const expenseRes = await createExpense({
+      groupId,
+      paidBy,
+      amount,
+      description,
+      members,
+    });
+    if (!expenseRes.success) {
+      return expenseRes;
+    }
+
+    // 2. Call calculateBalances()
+    const balancesRes = await calculateBalances(groupId);
+    if (!balancesRes.success) {
+      return balancesRes;
+    }
+
+    // 3. Call simplifyDebts()
+    const debts = simplifyDebts(balancesRes.data);
+    const transactions = debts.map((d) => ({
+      payer_id: d.from,
+      receiver_id: d.to,
+      amount: d.amount,
+    }));
+
+    // 4. Call saveSettlements()
+    const settlementsRes = await saveSettlements(groupId, transactions);
+    if (!settlementsRes.success) {
+      return settlementsRes;
+    }
+
+    return {
+      success: true,
+      data: {
+        expense: expenseRes.data.expense,
+        splits: expenseRes.data.splits,
+        settlements: settlementsRes.data,
+      },
+    };
+  } catch (err) {
+    return { success: false, error: err?.message ?? String(err) };
+  }
 }
