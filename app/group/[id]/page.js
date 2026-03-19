@@ -180,12 +180,12 @@ export default function GroupDetailPage() {
         }
       } else {
         // fallback: just refetch
-        await loadExpenses(id);
+        loadExpenses(id).catch(console.error);
       }
 
-      // After addExpense succeeds: re-fetch expenses + balances
-      await loadExpenses(id);
-      await loadBalances(id);
+      // Trigger background sync without blocking
+      loadExpenses(id).catch(console.error);
+      loadBalances(id).catch(console.error);
 
       setToast("Expense added successfully!");
       closeSmoothly();
@@ -233,8 +233,19 @@ export default function GroupDetailPage() {
         return;
       }
 
-      // Refresh balances after a successful settlement
-      await loadBalances(id);
+      // OPTIMISTIC UPDATE: Set the settled balance to 0 in UI instantly
+      setBalances((prev) => 
+        prev.map((b) => {
+          const key = b.id ?? b.user_id;
+          if (key === otherUserId) {
+            return { ...b, balance: 0 };
+          }
+          return b;
+        })
+      );
+
+      // Trigger background fetch to sync
+      loadBalances(id).catch(console.error);
       
       setToast("Balance settled successfully!");
       setTimeout(() => setToast(""), 3000);

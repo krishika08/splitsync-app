@@ -97,25 +97,25 @@ export default function DashboardPage() {
     const { success, data, error } = await createGroup(groupName.trim());
     if (!success) {
       setModalError(error ?? "Oops! Something went wrong creating your group. Please try again.");
-    } else {
       console.log("Group created successfully:", data);
-      // After createGroup, refresh groups using getUserGroups()
-      const {
-        data: { user: freshUser },
-        error: userErr,
-      } = await supabase.auth.getUser();
-
-      if (userErr || !freshUser) {
-        setModalError("Not authenticated. Please log in again.");
-      } else {
-        const result = await getUserGroups(freshUser.id);
-        if (result.success) setGroups(result.data ?? []);
-        else setModalError(result.error ?? "Failed to fetch groups.");
+      
+      // INSTANT UI UPDATE
+      if (data) {
+        setGroups((prev) => [data, ...prev]);
       }
 
       setToast("Group created successfully!");
       closeSmoothly();
       setTimeout(() => setToast(""), 3000);
+
+      // Background sync
+      supabase.auth.getUser().then(({ data: { user: freshUser }, error: userErr }) => {
+        if (!userErr && freshUser) {
+          getUserGroups(freshUser.id).then((result) => {
+            if (result.success) setGroups(result.data ?? []);
+          });
+        }
+      });
     }
     setModalLoading(false);
   };
