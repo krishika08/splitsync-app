@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { addExpense, getExpenses } from "@/services/expenseService";
+import { createSplits } from "@/services/splitService";
 
 function formatMoney(amount) {
   const num = typeof amount === "number" ? amount : Number(amount);
@@ -115,20 +116,43 @@ export default function GroupDetailPage() {
       // remove optimistic row
       setExpenses((prev) => prev.filter((e) => e.id !== optimisticExpense.id));
     } else {
-      // replace optimistic row with the real one
-      if (result.data?.id) {
+      const expenseId = result.data?.id;
+
+      // replace optimistic row with the real one if possible
+      if (expenseId) {
         setExpenses((prev) => {
           const withoutOptimistic = prev.filter((e) => e.id !== optimisticExpense.id);
           return [result.data, ...withoutOptimistic];
         });
+
+        // Build splits for all selected members EXCEPT the payer ("You")
+        const owingMembers = MOCK_MEMBERS.filter(
+          (m) => selectedMembers.includes(m.id) && m.name !== "You"
+        );
+
+        if (owingMembers.length > 0 && splitAmount > 0) {
+          const splits = owingMembers.map((member) => ({
+            user_id: member.id,
+            amount: splitAmount,
+          }));
+
+          const splitResult = await createSplits(expenseId, splits);
+          if (!splitResult.success) {
+            // Surface split error but do not roll back the created expense
+            setExpenseError(
+              splitResult.error ??
+                "Expense was added, but we could not save the splits."
+            );
+          }
+        }
       } else {
         // fallback: just refetch
         await loadExpenses(id);
       }
+
       setAmount("");
       setDescription("");
       setSelectedMembers(MOCK_MEMBERS.map((m) => m.id));
-      setExpenseError("");
       setShowExpenseModal(false);
     }
 
