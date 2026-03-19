@@ -1,37 +1,48 @@
 import { supabase } from "@/lib/supabaseClient";
+import { calculateBalances, simplifyDebts } from "./expenseService";
 
 /**
- * Record a settlement between two users in a group.
- *
- * currentUserId = payer
- * otherUserId   = receiver
+ * Settle up a debt between a payer and receiver in a group.
  */
-export async function settleUp(groupId, currentUserId, otherUserId, amount) {
+export async function settleUp(groupId, payerId, receiverId) {
   try {
     if (!groupId) return { success: false, error: "groupId is required" };
-    if (!currentUserId)
-      return { success: false, error: "currentUserId is required" };
-    if (!otherUserId) return { success: false, error: "otherUserId is required" };
+    if (!payerId) return { success: false, error: "payerId is required" };
+    if (!receiverId) return { success: false, error: "receiverId is required" };
 
-    const amt = typeof amount === "number" ? amount : Number(amount);
-    if (!Number.isFinite(amt) || amt <= 0) {
-      return { success: false, error: "amount must be > 0" };
+    // 1. Delete a settlement from "settlements" table
+    const { error: deleteError } = await supabase
+      .from("settlements")
+      .delete()
+      .eq("group_id", groupId)
+      .eq("payer_id", payerId)
+      .eq("receiver_id", receiverId);
+
+    if (deleteError) {
+      return { success: false, error: deleteError.message };
     }
 
-    // Assumes a `settlements` table exists in Supabase.
-    const { data, error } = await supabase
-      .from("settlements")
-      .insert({
-        group_id: groupId,
-        payer_id: currentUserId,
-        receiver_id: otherUserId,
-        amount: amt,
-      })
-      .select()
-      .single();
+    // 2. Recalculate balances
+    const balancesRes = await calculateBalances(groupId);
+    if (!balancesRes.success) {
+      return { success: false, error: balancesRes.error };
+    }
 
-    if (error) return { success: false, error: error.message };
-    return { success: true, data };
+    // 3. Recompute simplified debts
+    const debts = simplifyDebts(balancesRes.data);
+    const transactions = debts.map((d) => ({
+      payer_id: d.from,
+      receiver_id: d.to,
+      amount: d.amount,
+    }));
+
+    // 4. Save updated settlements
+    const settlementsRes = await saveSettlements(groupId, transactions);
+    if (!settlementsRes.success) {
+      return { success: false, error: settlementsRes.error };
+    }
+
+    return { success: true, data: settlementsRes.data };
   } catch (err) {
     return { success: false, error: err?.message ?? String(err) };
   }
