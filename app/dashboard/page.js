@@ -87,9 +87,22 @@ export default function DashboardPage() {
       setModalError(error ?? "Something went wrong. Please try again.");
     } else {
       console.log("Group created successfully:", data);
+      // After createGroup, refresh groups using getUserGroups()
+      const {
+        data: { user: freshUser },
+        error: userErr,
+      } = await supabase.auth.getUser();
+
+      if (userErr || !freshUser) {
+        setModalError("Not authenticated. Please log in again.");
+      } else {
+        const result = await getUserGroups(freshUser.id);
+        if (result.success) setGroups(result.data ?? []);
+        else setModalError(result.error ?? "Failed to fetch groups.");
+      }
+
       setGroupName("");
       setShowModal(false);
-      fetchGroups(user?.id);
     }
     setModalLoading(false);
   };
@@ -209,7 +222,7 @@ export default function DashboardPage() {
           <h2 className="text-base font-semibold text-slate-200">Your Groups</h2>
           <button
             onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:bg-indigo-500 hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:bg-indigo-500 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
             Create Group
@@ -236,11 +249,12 @@ export default function DashboardPage() {
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 text-3xl">
               🗂️
             </div>
-            <p className="mt-4 text-base font-semibold text-slate-200">No groups yet</p>
-            <p className="mt-1 text-sm text-slate-500">Create your first group to start splitting.</p>
+            <p className="mt-4 text-base font-semibold text-slate-200">
+              No groups yet. Create your first group!
+            </p>
             <button
               onClick={() => setShowModal(true)}
-              className="mt-6 inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:bg-indigo-500 hover:scale-[1.03]"
+              className="mt-6 inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:bg-indigo-500 hover:scale-[1.02] hover:shadow-lg"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
               Create Group
@@ -254,7 +268,7 @@ export default function DashboardPage() {
                 <Link
                   key={group.id}
                   href={`/group/${group.id}`}
-                  className={`group relative overflow-hidden rounded-2xl border border-white/5 bg-white/5 p-5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:bg-white/[0.08] hover:shadow-2xl ${a.border}`}
+                  className={`group relative overflow-hidden rounded-2xl border border-white/5 bg-white/5 p-5 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 hover:bg-white/[0.08] hover:scale-[1.02] hover:shadow-lg ${a.border}`}
                 >
                   {/* gradient bar top */}
                   <div className={`absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r ${a.bg} opacity-70`} />
@@ -311,7 +325,8 @@ export default function DashboardPage() {
               </div>
               <button
                 onClick={handleCancel}
-                className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/5 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                disabled={modalLoading}
+                className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/5 text-slate-400 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
                 ✕
               </button>
@@ -359,7 +374,7 @@ export default function DashboardPage() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
                       </svg>
-                      Creating…
+                      Processing…
                     </>
                   ) : "Create Group"}
                 </button>
