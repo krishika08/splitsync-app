@@ -15,6 +15,12 @@ function formatMoney(amount) {
   }).format(num);
 }
 
+const MOCK_MEMBERS = [
+  { id: 1, name: "You" },
+  { id: 2, name: "Alice" },
+  { id: 3, name: "Bob" },
+];
+
 export default function GroupDetailPage() {
   const params = useParams();
   const id = typeof params?.id === "string" ? params.id : params?.id?.[0];
@@ -24,6 +30,11 @@ export default function GroupDetailPage() {
   const [description, setDescription]           = useState("");
   const [expenseLoading, setExpenseLoading]     = useState(false);
   const [expenseError, setExpenseError]         = useState("");
+
+  const [selectedMembers, setSelectedMembers]   = useState(
+    () => MOCK_MEMBERS.map((m) => m.id)
+  );
+  const [splitAmount, setSplitAmount]           = useState(0);
 
   const [expenses, setExpenses] = useState([]);
   const [expensesLoading, setExpensesLoading] = useState(false);
@@ -56,6 +67,15 @@ export default function GroupDetailPage() {
     return { count: expenses.length, total };
   }, [expenses]);
 
+  useEffect(() => {
+    const total = Number(amount);
+    if (!Number.isFinite(total) || total <= 0 || selectedMembers.length === 0) {
+      setSplitAmount(0);
+      return;
+    }
+    setSplitAmount(total / selectedMembers.length);
+  }, [amount, selectedMembers]);
+
   const handleAddExpense = async () => {
     if (!id) {
       setExpenseError("Missing group id. Please refresh and try again.");
@@ -68,6 +88,10 @@ export default function GroupDetailPage() {
     }
     if (!description.trim()) {
       setExpenseError("Please enter a description.");
+      return;
+    }
+    if (selectedMembers.length === 0) {
+      setExpenseError("Please select at least one member to split with.");
       return;
     }
 
@@ -103,6 +127,7 @@ export default function GroupDetailPage() {
       }
       setAmount("");
       setDescription("");
+      setSelectedMembers(MOCK_MEMBERS.map((m) => m.id));
       setExpenseError("");
       setShowExpenseModal(false);
     }
@@ -113,6 +138,7 @@ export default function GroupDetailPage() {
   const handleCancelExpense = () => {
     setAmount("");
     setDescription("");
+    setSelectedMembers(MOCK_MEMBERS.map((m) => m.id));
     setExpenseError("");
     setShowExpenseModal(false);
   };
@@ -368,6 +394,62 @@ export default function GroupDetailPage() {
                   placeholder="Dinner, Rent, Cab, etc."
                   className="w-full rounded-lg border border-gray-300 p-3 text-sm text-gray-800 placeholder-gray-400 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
                 />
+              </div>
+
+              {/* Split Between */}
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Split Between
+                  </label>
+                  <span className="text-xs text-gray-400">
+                    Select who shares this expense
+                  </span>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-gray-50/60 px-3 py-2.5">
+                  <div className="space-y-2">
+                    {MOCK_MEMBERS.map((member) => {
+                      const checked = selectedMembers.includes(member.id);
+                      return (
+                        <label
+                          key={member.id}
+                          className="flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-white"
+                        >
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                              checked={checked}
+                              onChange={() =>
+                                setSelectedMembers((prev) =>
+                                  prev.includes(member.id)
+                                    ? prev.filter((id) => id !== member.id)
+                                    : [...prev, member.id]
+                                )
+                              }
+                            />
+                            <span className="text-gray-800">{member.name}</span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    Selected:{" "}
+                    <span className="font-medium text-gray-700">
+                      {selectedMembers.length} member
+                      {selectedMembers.length === 1 ? "" : "s"}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Per-person amount */}
+              <div className="rounded-lg bg-emerald-50/70 px-4 py-2.5 text-sm text-emerald-700">
+                <span className="font-medium">Each person owes: </span>
+                {Number(amount) > 0 && selectedMembers.length > 0
+                  ? formatMoney(splitAmount)
+                  : "—"}
               </div>
 
               {/* Paid by chip (placeholder) */}
