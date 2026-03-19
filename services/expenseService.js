@@ -9,25 +9,28 @@ export async function createExpense({
   members,
 }) {
   try {
+    // --- Input validation ---
     if (!groupId) return { success: false, error: "Group ID is required" };
-    if (amount === undefined || amount === null)
-      return { success: false, error: "Amount is required" };
-    if (!description)
-      return { success: false, error: "Description is required" };
-    if (!Array.isArray(members) || members.length === 0) {
-      return { success: false, error: "Members list is required" };
-    }
-
-    const uniqueMembers = Array.from(
-      new Set(members.filter((m) => typeof m === "string" && m.trim().length))
-    );
-    if (uniqueMembers.length === 0) {
-      return { success: false, error: "Members list is required" };
-    }
+    if (!paidBy) return { success: false, error: "paidBy is required" };
+    if (!description) return { success: false, error: "Description is required" };
 
     const amountNum = typeof amount === "number" ? amount : Number(amount);
     if (!Number.isFinite(amountNum) || amountNum <= 0) {
       return { success: false, error: "Amount must be a positive number" };
+    }
+    // Ensure the total expense is strictly limited to 2 decimal places
+    const safeAmountNum = Number(amountNum.toFixed(2));
+
+    if (!Array.isArray(members) || members.length === 0) {
+      return { success: false, error: "Members list is required" };
+    }
+
+    // Deduplicate members, filter out non-strings
+    const uniqueMembers = Array.from(
+      new Set(members.filter((m) => typeof m === "string" && m.trim().length))
+    );
+    if (uniqueMembers.length === 0) {
+      return { success: false, error: "Members list cannot be empty" };
     }
 
     // With RLS as currently defined, `paid_by` must be the current authenticated user.
@@ -48,7 +51,7 @@ export async function createExpense({
       .insert({
         group_id: groupId,
         paid_by: user.id,
-        amount: amountNum,
+        amount: safeAmountNum,
         description,
       })
       .select()
@@ -57,7 +60,7 @@ export async function createExpense({
     if (expenseError) return { success: false, error: expenseError.message };
 
     // 2) Calculate equal split among members (in cents to avoid float drift)
-    const centsTotal = Math.round(amountNum * 100);
+    const centsTotal = Math.round(safeAmountNum * 100);
     const n = uniqueMembers.length;
     const baseCents = Math.floor(centsTotal / n);
     const remainder = centsTotal - baseCents * n;
@@ -92,6 +95,11 @@ export async function createExpense({
 export async function addExpense(groupId, amount, description) {
   try {
     if (!groupId) return { success: false, error: "Group ID is required" };
+    const amountNum = typeof amount === "number" ? amount : Number(amount);
+    if (!Number.isFinite(amountNum) || amountNum <= 0) {
+      return { success: false, error: "Amount must be a positive number" };
+    }
+    const safeAmountNum = Number(amountNum.toFixed(2));
     // Get current user
     const {
       data: { user },
@@ -106,7 +114,7 @@ export async function addExpense(groupId, amount, description) {
       .from("expenses")
       .insert({
         group_id: groupId,
-        amount,
+        amount: safeAmountNum,
         description,
         paid_by: user.id,
       })
@@ -193,8 +201,9 @@ export async function calculateBalances(groupId) {
     }
 
     // 3b) Subtract what each user owes (from splits)
-    if (Array.isArray(splits)) {
+    if (Array.isArray(splits) && splits.length > 0) {
       for (const split of splits) {
+        if (!split || !split.user_id) continue;
         const amt =
           typeof split.amount === "number"
             ? split.amount
@@ -213,7 +222,7 @@ export async function calculateBalances(groupId) {
 // Given balances { userId: balance }, produce simplified transfers
 // where positive balance means "should receive", negative means "should pay".
 export function simplifyDebts(balances) {
-  if (!balances || typeof balances !== "object") return [];
+  if (!balances || typeof balances !== "object" || Array.isArray(balances)) return [];
 
   const creditors = [];
   const debtors = [];
