@@ -208,3 +208,55 @@ export async function calculateBalances(groupId) {
     return { success: false, error: err?.message ?? String(err) };
   }
 }
+
+// Given balances { userId: balance }, produce simplified transfers
+// where positive balance means "should receive", negative means "should pay".
+export function simplifyDebts(balances) {
+  if (!balances || typeof balances !== "object") return [];
+
+  const creditors = [];
+  const debtors = [];
+
+  for (const [userId, raw] of Object.entries(balances)) {
+    const amount = typeof raw === "number" ? raw : Number(raw);
+    if (!Number.isFinite(amount) || Math.abs(amount) < 0.005) continue;
+    if (amount > 0) {
+      creditors.push({ userId, amount });
+    } else if (amount < 0) {
+      debtors.push({ userId, amount: -amount }); // store as positive owed
+    }
+  }
+
+  // Nothing to settle
+  if (!creditors.length || !debtors.length) return [];
+
+  // Greedy match: largest creditors and debtors first
+  creditors.sort((a, b) => b.amount - a.amount);
+  debtors.sort((a, b) => b.amount - a.amount);
+
+  const txs = [];
+  let i = 0;
+  let j = 0;
+
+  while (i < debtors.length && j < creditors.length) {
+    const debtor = debtors[i];
+    const creditor = creditors[j];
+    const amount = Math.min(debtor.amount, creditor.amount);
+
+    if (amount > 0.004) {
+      txs.push({
+        from: debtor.userId,
+        to: creditor.userId,
+        amount: Number(amount.toFixed(2)),
+      });
+    }
+
+    debtor.amount -= amount;
+    creditor.amount -= amount;
+
+    if (debtor.amount <= 0.004) i += 1;
+    if (creditor.amount <= 0.004) j += 1;
+  }
+
+  return txs;
+}
