@@ -1,48 +1,23 @@
 import { supabase } from "@/lib/supabaseClient";
-import { calculateBalances, simplifyDebts } from "./expenseService";
+import { createExpenseAndUpdate } from "./expenseService";
 
 /**
- * Settle up a debt between a payer and receiver in a group.
+ * Settle up a debt between a payer and receiver in a group by creating an offsetting payment expense.
  */
-export async function settleUp(groupId, payerId, receiverId) {
+export async function settleUp(groupId, payerId, receiverId, amount) {
   try {
     if (!groupId) return { success: false, error: "groupId is required" };
     if (!payerId) return { success: false, error: "payerId is required" };
     if (!receiverId) return { success: false, error: "receiverId is required" };
+    if (!amount) return { success: false, error: "amount is required" };
 
-    // 1. Delete a settlement from "settlements" table
-    const { error: deleteError } = await supabase
-      .from("settlements")
-      .delete()
-      .eq("group_id", groupId)
-      .eq("payer_id", payerId)
-      .eq("receiver_id", receiverId);
-
-    if (deleteError) {
-      return { success: false, error: deleteError.message };
-    }
-
-    // 2. Recalculate balances
-    const balancesRes = await calculateBalances(groupId);
-    if (!balancesRes.success) {
-      return { success: false, error: balancesRes.error };
-    }
-
-    // 3. Recompute simplified debts
-    const debts = simplifyDebts(balancesRes.data);
-    const transactions = debts.map((d) => ({
-      payer_id: d.from,
-      receiver_id: d.to,
-      amount: d.amount,
-    }));
-
-    // 4. Save updated settlements
-    const settlementsRes = await saveSettlements(groupId, transactions);
-    if (!settlementsRes.success) {
-      return { success: false, error: settlementsRes.error };
-    }
-
-    return { success: true, data: settlementsRes.data };
+    return await createExpenseAndUpdate({
+      groupId,
+      paidBy: payerId,
+      amount: Number(amount),
+      description: "Settle Up",
+      members: [receiverId]
+    });
   } catch (err) {
     return { success: false, error: err?.message ?? String(err) };
   }
@@ -94,21 +69,22 @@ export async function saveSettlements(groupId, transactions) {
   }
 }
 
+import { calculateBalances } from "./expenseService";
+
 /**
- * Get all settlements for a group.
+ * Get all settlements for a group by calculating who owes whom.
  */
 export async function getSettlements(groupId) {
   try {
     if (!groupId) return { success: false, error: "groupId is required" };
 
-    const { data, error } = await supabase
-      .from("settlements")
-      .select("*")
-      .eq("group_id", groupId);
+    // Simply delegate to calculateBalances which runs this sequential pipeline:
+    // 1) Fetch expenses
+    // 2) Fetch splits 
+    // 3) Build balance map
+    // 4) simplifyDebts(balances) -> { payer_id, receiver_id, amount }
+    return await calculateBalances(groupId);
 
-    if (error) return { success: false, error: error.message };
-
-    return { success: true, data };
   } catch (err) {
     return { success: false, error: err?.message ?? String(err) };
   }

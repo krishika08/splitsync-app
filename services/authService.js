@@ -8,6 +8,14 @@ export async function signup(email, password) {
     });
 
     if (error) return { success: false, error: error.message };
+
+    if (data?.user) {
+      await supabase.from("profiles").insert({
+        id: data.user.id,
+        email: data.user.email
+      });
+    }
+
     return { success: true, data };
   } catch (err) {
     return { success: false, error: err?.message ?? String(err) };

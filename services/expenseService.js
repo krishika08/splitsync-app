@@ -6,7 +6,9 @@ export async function createExpense({
   paidBy,
   amount,
   description,
-  members,
+  members = [],
+  splitType = "equal",
+  splitDetails = {} // Expects { [userId]: amountOrPercentageValue }
 }) {
   try {
     // --- Input validation ---
@@ -18,20 +20,7 @@ export async function createExpense({
     if (!Number.isFinite(amountNum) || amountNum <= 0) {
       return { success: false, error: "Amount must be a positive number" };
     }
-    // Ensure the total expense is strictly limited to 2 decimal places
     const safeAmountNum = Number(amountNum.toFixed(2));
-
-    if (!Array.isArray(members) || members.length === 0) {
-      return { success: false, error: "Members list is required" };
-    }
-
-    // Deduplicate members, filter out non-strings
-    const uniqueMembers = Array.from(
-      new Set(members.filter((m) => typeof m === "string" && m.trim().length))
-    );
-    if (uniqueMembers.length === 0) {
-      return { success: false, error: "Members list cannot be empty" };
-    }
 
     // With RLS as currently defined, `paid_by` must be the current authenticated user.
     const {
@@ -45,7 +34,70 @@ export async function createExpense({
       return { success: false, error: "paidBy must match current user" };
     }
 
-    // 1) Insert expense
+    // --- 1) Prepare splits dynamically BEFORE inserting anything ---
+    let splitsToInsert = [];
+
+    if (splitType === "equal") {
+      if (!Array.isArray(members) || members.length === 0) {
+        return { success: false, error: "Members list is required for equal split" };
+      }
+      const uniqueMembers = Array.from(new Set(members.filter(m => typeof m === "string" && m.length)));
+      const centsTotal = Math.round(safeAmountNum * 100);
+      const n = uniqueMembers.length;
+      const baseCents = Math.floor(centsTotal / n);
+      const remainder = centsTotal - baseCents * n;
+
+      splitsToInsert = uniqueMembers.map((memberId, idx) => {
+        const cents = baseCents + (idx < remainder ? 1 : 0);
+        return {
+          user_id: memberId,
+          amount: Number((cents / 100).toFixed(2)),
+        };
+      });
+    } 
+    else if (splitType === "exact") {
+      let sum = 0;
+      for (const [uid, amt] of Object.entries(splitDetails)) {
+        const amtNum = Number(amt);
+        if (isNaN(amtNum) || amtNum < 0) return { success: false, error: "Invalid split amount" };
+        sum += amtNum;
+        splitsToInsert.push({
+          user_id: uid,
+          amount: Number(amtNum.toFixed(2)),
+        });
+      }
+      if (Math.abs(sum - safeAmountNum) > 0.05) { // higher threshold for floats
+        return { success: false, error: `Exact splits sum to ${sum}, must equal ${safeAmountNum}` };
+      }
+    } 
+    else if (splitType === "percentage") {
+      let sumPct = 0;
+      for (const [uid, pct] of Object.entries(splitDetails)) {
+        const pctNum = Number(pct);
+        if (isNaN(pctNum) || pctNum < 0) return { success: false, error: "Invalid percentage" };
+        sumPct += pctNum;
+      }
+      if (Math.abs(sumPct - 100) > 0.05) {
+        return { success: false, error: "Percentages must sum up to 100%" };
+      }
+
+      splitsToInsert = Object.entries(splitDetails).map(([uid, pct]) => ({
+        user_id: uid,
+        amount: Number(((Number(pct) / 100) * safeAmountNum).toFixed(2)),
+      }));
+
+      // Patch the difference to first user to ensure ledger matches perfect accuracy
+      const sumAmt = splitsToInsert.reduce((a, b) => a + b.amount, 0);
+      const diff = safeAmountNum - sumAmt;
+      if (Math.abs(diff) > 0.001 && splitsToInsert.length > 0) {
+         splitsToInsert[0].amount = Number((splitsToInsert[0].amount + diff).toFixed(2));
+      }
+    } 
+    else {
+      return { success: false, error: "Unsupported split type" };
+    }
+
+    // --- 2) Insert expense ---
     const { data: expense, error: expenseError } = await supabase
       .from("expenses")
       .insert({
@@ -59,32 +111,19 @@ export async function createExpense({
 
     if (expenseError) return { success: false, error: expenseError.message };
 
-    // 2) Calculate equal split among members (in cents to avoid float drift)
-    const centsTotal = Math.round(safeAmountNum * 100);
-    const n = uniqueMembers.length;
-    const baseCents = Math.floor(centsTotal / n);
-    const remainder = centsTotal - baseCents * n;
+    // Update with inserted expense_id
+    const finalSplits = splitsToInsert.map(s => ({ ...s, expense_id: expense.id }));
 
-    const splitsToInsert = uniqueMembers.map((memberId, idx) => {
-      const cents = baseCents + (idx < remainder ? 1 : 0);
-      return {
-        expense_id: expense.id,
-        user_id: memberId,
-        amount: Number((cents / 100).toFixed(2)),
-      };
-    });
-
-    // 3) Insert expense_splits
+    // --- 3) Insert expense_splits ---
     const { data: splits, error: splitsError } = await supabase
       .from("expense_splits")
-      .insert(splitsToInsert)
+      .insert(finalSplits)
       .select();
 
     if (splitsError) {
       return { success: false, error: splitsError.message };
     }
 
-    // 4) Return structured response
     return { success: true, data: { expense, splits } };
   } catch (err) {
     return { success: false, error: err?.message ?? String(err) };
@@ -134,15 +173,27 @@ export async function getExpenses(groupId) {
   try {
     if (!groupId) return { success: false, error: "Group ID is required" };
 
+    // Apply strict group-membership validation via inner joins to match correct visibility requirement
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     const { data, error } = await supabase
       .from("expenses")
-      .select("id, amount, description, paid_by, created_at")
+      .select("id, amount, description, paid_by, created_at, groups!inner(group_members!group_members_group_id_fkey!inner(user_id))")
       .eq("group_id", groupId)
+      .eq("groups.group_members.user_id", user?.id)
       .order("created_at", { ascending: false });
+
+    // Strip nested join data for cleanliness
+    const cleanedData = data ? data.map(e => {
+        const { groups, ...rest } = e;
+        return rest;
+    }) : [];
 
     if (error) return { success: false, error: error.message };
 
-    return { success: true, data };
+    return { success: true, data: cleanedData };
   } catch (err) {
     return { success: false, error: err.message };
   }
@@ -153,11 +204,16 @@ export async function calculateBalances(groupId) {
   try {
     if (!groupId) return { success: false, error: "Group ID is required" };
 
-    // 1) Fetch all expenses for this group
+    // 1) Fetch all expenses for this group using exact user membership constraint
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     const { data: expenses, error: expensesError } = await supabase
       .from("expenses")
-      .select("id, amount, paid_by")
-      .eq("group_id", groupId);
+      .select("id, amount, paid_by, groups!inner(group_members!group_members_group_id_fkey!inner(user_id))")
+      .eq("group_id", groupId)
+      .eq("groups.group_members.user_id", user?.id);
 
     if (expensesError) {
       return { success: false, error: expensesError.message };
@@ -169,11 +225,12 @@ export async function calculateBalances(groupId) {
 
     const expenseIds = expenses.map((e) => e.id);
 
-    // 2) Fetch all related splits, restricted by this group's expenses
+    // 2) Fetch all related splits, applying the exact same recursive membership constraint
     const { data: splits, error: splitsError } = await supabase
       .from("expense_splits")
-      .select("expense_id, user_id, amount")
-      .in("expense_id", expenseIds);
+      .select("expense_id, user_id, amount, expenses!inner(groups!inner(group_members!group_members_group_id_fkey!inner(user_id)))")
+      .in("expense_id", expenseIds)
+      .eq("expenses.groups.group_members.user_id", user?.id);
 
     if (splitsError) {
       return { success: false, error: splitsError.message };
@@ -213,7 +270,8 @@ export async function calculateBalances(groupId) {
       }
     }
 
-    return { success: true, data: balances };
+    const sortedDebts = simplifyDebts(balances);
+    return { success: true, data: sortedDebts };
   } catch (err) {
     return { success: false, error: err?.message ?? String(err) };
   }
@@ -255,8 +313,8 @@ export function simplifyDebts(balances) {
 
     if (amount > 0.004) {
       txs.push({
-        from: debtor.userId,
-        to: creditor.userId,
+        payer_id: debtor.userId,
+        receiver_id: creditor.userId,
         amount: Number(amount.toFixed(2)),
       });
     }
@@ -276,7 +334,9 @@ export async function createExpenseAndUpdate({
   paidBy,
   amount,
   description,
-  members,
+  members = [],
+  splitType = "equal",
+  splitDetails = {}
 }) {
   try {
     // 1. Call createExpense()
@@ -286,6 +346,8 @@ export async function createExpenseAndUpdate({
       amount,
       description,
       members,
+      splitType,
+      splitDetails
     });
     if (!expenseRes.success) {
       return expenseRes;
@@ -297,13 +359,8 @@ export async function createExpenseAndUpdate({
       return balancesRes;
     }
 
-    // 3. Call simplifyDebts()
-    const debts = simplifyDebts(balancesRes.data);
-    const transactions = debts.map((d) => ({
-      payer_id: d.from,
-      receiver_id: d.to,
-      amount: d.amount,
-    }));
+    // 3. Set transactions
+    const transactions = balancesRes.data;
 
     // 4. Call saveSettlements()
     const settlementsRes = await saveSettlements(groupId, transactions);
@@ -319,6 +376,51 @@ export async function createExpenseAndUpdate({
         settlements: settlementsRes.data,
       },
     };
+  } catch (err) {
+    return { success: false, error: err?.message ?? String(err) };
+  }
+}
+
+/**
+ * Get the recent activity feed for a group, detailing who added what or settled.
+ */
+export async function getActivityFeed(groupId) {
+  try {
+    if (!groupId) return { success: false, error: "Group ID is required" };
+
+    const { data: expenses, error } = await supabase
+      .from("expenses")
+      .select("id, amount, description, paid_by, created_at")
+      .eq("group_id", groupId)
+      .order("created_at", { ascending: false });
+
+    if (error) return { success: false, error: error.message };
+
+    // Fetch nicknames natively from joined queries
+    const { data: members } = await supabase
+      .from("group_members")
+      .select("user_id, profiles!inner(email)")
+      .eq("group_id", groupId);
+
+    const nameMap = {};
+    if (members) {
+      members.forEach((m) => {
+        nameMap[m.user_id] = m.profiles?.email?.split("@")[0] || "Someone";
+      });
+    }
+
+    const feed = expenses.map((e) => {
+      const actor = nameMap[e.paid_by] || "Someone";
+      return {
+        id: e.id,
+        actor,
+        action: e.description === "Settle Up" ? "settled up" : `added "${e.description}"`,
+        amount: e.amount,
+        timestamp: e.created_at,
+      };
+    });
+
+    return { success: true, data: feed };
   } catch (err) {
     return { success: false, error: err?.message ?? String(err) };
   }
