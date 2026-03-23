@@ -1,0 +1,34 @@
+﻿
+> splitsync-app@0.1.0 lint
+> eslint
+
+
+X:\SPLITWISE\splitsync-app\app\groups\[groupId]\page.js
+  248:88  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+X:\SPLITWISE\splitsync-app\app\login\page.js
+  111:16  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+X:\SPLITWISE\splitsync-app\components\PremiumAddExpenseModal.jsx
+  20:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  18 |   useEffect(() => {
+  19 |     if (isOpen) {
+> 20 |       setAmount('');
+     |       ^^^^^^^^^ Avoid calling setState() directly within an effect
+  21 |       setDescription('');
+  22 |       setPaidBy(currentUser?.id || '');
+  23 |       setSelectedMembers(members.map(m => m.user_id || m.id));  react-hooks/set-state-in-effect
+
+X:\SPLITWISE\splitsync-app\components\PremiumBalancesScreen.jsx
+   93:82  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  122:43  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+Ô£û 5 problems (5 errors, 0 warnings)
+
