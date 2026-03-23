@@ -90,7 +90,7 @@ export default function PremiumBalancesScreen({ settlements: rawSettlements = []
             className="bg-white rounded-[16px] p-6 shadow-sm border border-gray-200 hover:shadow hover:border-gray-300 transition-all duration-200 flex flex-col gap-5 relative overflow-hidden"
           >
             <div className="flex items-center justify-between relative z-10">
-              <span className="text-[14px] font-semibold text-gray-500">Total you're owed</span>
+              <span className="text-[14px] font-semibold text-gray-500">Total you&apos;re owed</span>
               <div className="w-10 h-10 rounded-[12px] bg-green-50 text-green-600 flex items-center justify-center">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
@@ -119,7 +119,7 @@ export default function PremiumBalancesScreen({ settlements: rawSettlements = []
               </div>
             ) : safeSettlements.length === 0 ? (
               <div className="text-center py-6 text-gray-500 font-medium">
-                No unsettled balances. You're all square!
+                No unsettled balances. You&apos;re all square!
               </div>
             ) : (
               <AnimatePresence>

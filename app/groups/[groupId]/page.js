@@ -245,7 +245,7 @@ export default function GroupDetailPage() {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-[16px] font-bold tracking-tight text-gray-900">You're all set. Nothing to show.</p>
+                  <p className="text-[16px] font-bold tracking-tight text-gray-900">You&apos;re all set. Nothing to show.</p>
                   <p className="text-[14px] font-medium text-gray-500 mt-1">Add one to get started.</p>
                 </div>
               </div>

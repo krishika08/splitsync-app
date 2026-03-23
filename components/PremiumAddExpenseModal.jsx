@@ -17,12 +17,14 @@ export default function PremiumAddExpenseModal({ isOpen = false, onClose, groupI
 
   useEffect(() => {
     if (isOpen) {
-      setAmount('');
-      setDescription('');
-      setPaidBy(currentUser?.id || '');
-      setSelectedMembers(members.map(m => m.user_id || m.id));
-      setError('');
-      setIsSuccess(false);
+      setTimeout(() => {
+        setAmount('');
+        setDescription('');
+        setPaidBy(currentUser?.id || '');
+        setSelectedMembers(members.map(m => m.user_id || m.id));
+        setError('');
+        setIsSuccess(false);
+      }, 0);
       
       // Auto-focus amount for fast flow
       setTimeout(() => amountRef.current?.focus(), 150);

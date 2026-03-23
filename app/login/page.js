@@ -108,7 +108,7 @@ export default function LoginPage() {
 
         <div className="mt-8 pt-6 border-t border-[#E5E5EA]/60 flex flex-col items-center justify-center">
           <div className="text-[14px] text-[#86868B] font-normal tracking-wide">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link href="/signup" className="text-[#007AFF] font-medium hover:underline hover:text-[#0051A8] underline-offset-4 transition-colors">
               Sign up
             </Link>
