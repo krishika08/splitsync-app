@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import { saveSettlements } from "./settlementService";
+import { notifyGroupMembers } from "./notificationService";
 
 export async function createExpense({
   groupId,
@@ -368,6 +369,29 @@ export async function createExpenseAndUpdate({
       return settlementsRes;
     }
 
+    // 5. Send notifications to group members (fire-and-forget)
+    try {
+      const { data: actorProfile } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", paidBy)
+        .single();
+      const actorName = actorProfile?.username || "Someone";
+
+      const isSettleUp = description === "Settle Up";
+      notifyGroupMembers({
+        groupId,
+        actorId: paidBy,
+        type: isSettleUp ? "settle_up" : "expense_added",
+        title: isSettleUp ? "Settlement" : "New Expense",
+        message: isSettleUp
+          ? `@${actorName} settled up ₹${Number(amount).toFixed(2)}`
+          : `@${actorName} added "${description}" — ₹${Number(amount).toFixed(2)}`,
+      });
+    } catch (notifErr) {
+      console.warn("[createExpenseAndUpdate] Notification send failed (non-blocking):", notifErr);
+    }
+
     return {
       success: true,
       data: {
@@ -396,16 +420,16 @@ export async function getActivityFeed(groupId) {
 
     if (error) return { success: false, error: error.message };
 
-    // Fetch nicknames natively from joined queries
+    // Fetch usernames from joined profiles
     const { data: members } = await supabase
       .from("group_members")
-      .select("user_id, profiles!inner(email)")
+      .select("user_id, profiles!inner(username, email)")
       .eq("group_id", groupId);
 
     const nameMap = {};
     if (members) {
       members.forEach((m) => {
-        nameMap[m.user_id] = m.profiles?.email?.split("@")[0] || "Someone";
+        nameMap[m.user_id] = m.profiles?.username || m.profiles?.email?.split("@")[0] || "Someone";
       });
     }
 

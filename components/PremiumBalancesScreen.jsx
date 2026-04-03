@@ -46,7 +46,7 @@ export default function PremiumBalancesScreen({ settlements: rawSettlements = []
     if (id === currentUser.id) return "You";
     const m = members.find(m => (m.user_id || m.id) === id);
     if (!m) return "Someone";
-    return m.email?.split('@')[0] || m.users?.name || m.name || "User";
+    return m.username || m.email?.split('@')[0] || m.users?.name || m.name || "User";
   };
 
   return (

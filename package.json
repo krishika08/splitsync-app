@@ -14,7 +14,8 @@
     "framer-motion": "^12.38.0",
     "next": "16.1.7",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "react-swipeable": "^7.0.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

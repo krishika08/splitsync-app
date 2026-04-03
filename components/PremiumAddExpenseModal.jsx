@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createExpenseAndUpdate } from '@/services/expenseService';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReceiptScannerModal from './ReceiptScannerModal';
+import ItemAssignmentModal from './ItemAssignmentModal';
 
 export default function PremiumAddExpenseModal({ isOpen = false, onClose, groupId, currentUser, members = [], onSuccess }) {
   const [amount, setAmount] = useState('');
@@ -12,6 +14,38 @@ export default function PremiumAddExpenseModal({ isOpen = false, onClose, groupI
   const [error, setError] = useState('');
   const [splitType, setSplitType] = useState('equal');
   const [splitDetails, setSplitDetails] = useState({});
+  const [isReceiptScannerOpen, setIsReceiptScannerOpen] = useState(false);
+  const [isItemAssignmentOpen, setIsItemAssignmentOpen] = useState(false);
+  const [receiptItems, setReceiptItems] = useState([]);
+  const [receiptMerchant, setReceiptMerchant] = useState('');
+  const [receiptCurrency, setReceiptCurrency] = useState('INR');
+  const [receiptTax, setReceiptTax] = useState(0);
+
+  const handleReceiptScanned = (receiptInfo) => {
+    setIsReceiptScannerOpen(false);
+    // If there are itemized results, open the assignment modal
+    if (receiptInfo.items && receiptInfo.items.length > 0 && members.length > 1) {
+      setReceiptItems(receiptInfo.items);
+      setReceiptMerchant(receiptInfo.merchant || 'Receipt');
+      setReceiptCurrency(receiptInfo.currency || 'INR');
+      setReceiptTax(receiptInfo.tax || 0);
+      setIsItemAssignmentOpen(true);
+    } else {
+      // Fallback: just fill amount + description
+      if (receiptInfo.amount) setAmount(String(receiptInfo.amount));
+      if (receiptInfo.description) setDescription(receiptInfo.description);
+    }
+  };
+
+  const handleItemAssignmentDone = (result) => {
+    setIsItemAssignmentOpen(false);
+    setAmount(String(result.amount));
+    setDescription(result.description);
+    setSplitType('exact');
+    setSplitDetails(result.splitDetails);
+    // Auto-select all members that have a split
+    setSelectedMembers(Object.keys(result.splitDetails));
+  };
 
   const amountRef = useRef(null);
 
@@ -91,16 +125,31 @@ export default function PremiumAddExpenseModal({ isOpen = false, onClose, groupI
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.25 }}
+      onClick={onClose}
       className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-6 bg-gray-900/30 backdrop-blur-md"
+      style={{ touchAction: "none" }}
     >
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
+        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, scale: 0.95, y: "100%" }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: "100%" }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        drag="y"
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={0.2}
+        onDragEnd={(e, info) => {
+          if (info.offset.y > 100 || info.velocity.y > 500) {
+            onClose();
+          }
+        }}
         className="relative w-full max-w-[440px] bg-white sm:rounded-[2rem] rounded-t-[2rem] shadow-[0_20px_80px_rgba(0,0,0,0.15)] flex flex-col max-h-[95vh] sm:max-h-[90vh] overflow-hidden"
       >
         
+        {/* Mobile Drag Handle */}
+        <div className="w-full flex justify-center pt-3 pb-1 sm:hidden absolute top-0 z-50">
+          <div className="w-12 h-1.5 bg-gray-200 rounded-full" />
+        </div>
         {/* SUCCESS OVERLAY */}
         <AnimatePresence>
           {isSuccess && (
@@ -139,7 +188,7 @@ export default function PremiumAddExpenseModal({ isOpen = false, onClose, groupI
         </AnimatePresence>
 
         {/* HEADER */}
-        <div className="px-8 pt-8 pb-4 flex items-center justify-between">
+        <div className="px-8 pt-10 sm:pt-8 pb-4 flex items-center justify-between relative z-40">
           <button 
             onClick={onClose}
             disabled={isSubmitting || isSuccess}
@@ -147,9 +196,21 @@ export default function PremiumAddExpenseModal({ isOpen = false, onClose, groupI
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
-          <div className="flex-1 text-center pr-8">
+          <div className="flex-1 text-center">
             <h2 className="text-[16px] font-bold tracking-widest uppercase text-gray-900">Add a new expense</h2>
           </div>
+          <button
+            onClick={() => setIsReceiptScannerOpen(true)}
+            disabled={isSubmitting || isSuccess}
+            title="Scan Receipt"
+            className="w-10 h-10 -mr-2 rounded-full flex items-center justify-center text-indigo-500 hover:bg-indigo-50 hover:text-indigo-700 transition-all duration-200 relative group"
+          >
+            <svg className="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span className="absolute -bottom-7 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-[10px] font-bold rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">Scan Receipt</span>
+          </button>
         </div>
 
         {/* DOMINANT AMOUNT INPUT */}
@@ -203,7 +264,7 @@ export default function PremiumAddExpenseModal({ isOpen = false, onClose, groupI
                 <option value={currentUser?.id}>You</option>
                 {members.filter(m => (m.user_id || m.id) !== currentUser?.id).map((m, idx) => {
                     const mId = m.user_id || m.id;
-                    const mName = m.email?.split('@')[0] || m.users?.name || m.name || `User ${idx}`;
+                    const mName = m.username || m.email?.split('@')[0] || m.users?.name || m.name || `User ${idx}`;
                     return <option key={mId} value={mId}>{mName}</option>;
                 })}
               </select>
@@ -221,24 +282,26 @@ export default function PremiumAddExpenseModal({ isOpen = false, onClose, groupI
           </div>
 
           <div className="space-y-4 pt-2">
-            <div className="flex items-center justify-between">
-              <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400">Split With</label>
-              <div className="flex gap-1 bg-gray-100 p-0.5 rounded-lg">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <label className="block text-[11px] font-black uppercase tracking-widest text-gray-400">Split With</label>
+                {splitType === 'equal' && (
+                  <button onClick={handleSelectAll} type="button" disabled={isSubmitting || isSuccess} className="text-[11px] font-black uppercase text-indigo-600 hover:text-indigo-800 transition-colors tracking-widest bg-indigo-50 px-2.5 py-1 rounded-md">
+                    {selectedMembers.length === members.length ? "Deselect All" : "Select All"}
+                  </button>
+                )}
+              </div>
+              <div className="flex bg-gray-100 p-1 rounded-xl w-full border border-gray-200/50">
                 {['equal', 'exact', 'percentage'].map(t => (
-                   <button key={t} type="button" onClick={() => setSplitType(t)} className={`px-2.5 py-1 text-[10px] font-extrabold rounded-md capitalize transition-all ${splitType === t ? 'bg-white text-gray-900 shadow-[0_2px_4px_rgba(0,0,0,0.05)]' : 'text-gray-400 hover:text-gray-600'}`}>{t}</button>
+                   <button key={t} type="button" onClick={() => setSplitType(t)} className={`flex-1 py-1.5 text-[12px] font-bold rounded-lg capitalize transition-all outline-none ${splitType === t ? 'bg-white text-gray-900 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] ring-1 ring-gray-900/5' : 'text-gray-500 hover:text-gray-700'}`}>{t}</button>
                 ))}
               </div>
-              {splitType === 'equal' && (
-                <button onClick={handleSelectAll} type="button" disabled={isSubmitting || isSuccess} className="text-[11px] font-black uppercase text-indigo-600 hover:text-indigo-800 transition-colors tracking-widest bg-indigo-50 px-2.5 py-1 rounded-md">
-                  {selectedMembers.length === members.length ? "Deselect All" : "Select All"}
-                </button>
-              )}
             </div>
             
-            <div className="grid grid-cols-1 gap-1">
+            <div className="grid grid-cols-1 gap-1 mt-1">
               {members.map((m, idx) => {
                 const mId = m.user_id || m.id;
-                const mName = m.email?.split('@')[0] || m.users?.name || m.name || `User ${idx}`;
+                const mName = m.username || m.email?.split('@')[0] || m.users?.name || m.name || `User ${idx}`;
                 const isSelected = selectedMembers.includes(mId);
                 const isYou = mId === currentUser?.id;
 
@@ -299,6 +362,35 @@ export default function PremiumAddExpenseModal({ isOpen = false, onClose, groupI
         </div>
 
       </motion.div>
+
+      {/* Receipt Scanner */}
+      <AnimatePresence>
+        {isReceiptScannerOpen && (
+          <ReceiptScannerModal
+            isOpen={isReceiptScannerOpen}
+            onClose={() => setIsReceiptScannerOpen(false)}
+            onReceiptScanned={handleReceiptScanned}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Item Assignment */}
+      <AnimatePresence>
+        {isItemAssignmentOpen && (
+          <ItemAssignmentModal
+            isOpen={isItemAssignmentOpen}
+            onClose={() => setIsItemAssignmentOpen(false)}
+            items={receiptItems}
+            merchant={receiptMerchant}
+            currency={receiptCurrency}
+            total={receiptItems.reduce((s, i) => s + i.price, 0) + receiptTax}
+            tax={receiptTax}
+            members={members}
+            currentUser={currentUser}
+            onComplete={handleItemAssignmentDone}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

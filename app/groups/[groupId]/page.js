@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getUserGroups, getGroupMembers, addMemberToGroup } from "@/services/groupService";
+import { getUserGroups, getGroupMembers, addMemberToGroup, deleteGroup } from "@/services/groupService";
 import { getCurrentUser } from "@/services/authService";
 import { getExpenses, calculateBalances } from "@/services/expenseService";
 import { getSettlements, settleUp } from "@/services/settlementService";
@@ -10,6 +10,8 @@ import PremiumAddExpenseModal from "@/components/PremiumAddExpenseModal";
 import PremiumBalancesScreen from "@/components/PremiumBalancesScreen";
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeIn, scaleIn, staggerContainer } from "@/lib/motion";
+import NotificationBell from "@/components/NotificationBell";
+import SwipeableExpenseItem from "@/components/SwipeableExpenseItem";
 
 export default function GroupDetailPage() {
   const params = useParams();
@@ -30,6 +32,28 @@ export default function GroupDetailPage() {
   const [balances, setBalances] = useState({});
   const [settlements, setSettlements] = useState([]);
   const [loadingSettlements, setLoadingSettlements] = useState(true);
+  const [isDeletingGroup, setIsDeletingGroup] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleDeleteGroup = async () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    setShowDeleteConfirm(false);
+    setIsDeletingGroup(true);
+    setDeleteError("");
+    const { success, error } = await deleteGroup(groupId);
+    if (success) {
+      router.push('/dashboard');
+    } else {
+      setDeleteError(error || "Unknown error");
+      setIsDeletingGroup(false);
+      // Auto-clear error after 5 seconds
+      setTimeout(() => setDeleteError(""), 5000);
+    }
+  };
 
   useEffect(() => {
     async function fetchGroupData() {
@@ -170,6 +194,22 @@ export default function GroupDetailPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
+            <div className="w-[42px] h-[42px] rounded-[14px] overflow-hidden border border-gray-200/50 shadow-sm ml-1 mr-1 hidden sm:block">
+              {group?.type === 'individual' ? (
+                <img 
+                  src={`https://api.dicebear.com/9.x/micah/svg?seed=${encodeURIComponent(group?.name || "User")}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffdfbf`} 
+                  alt={group?.name} 
+                  className="w-full h-full object-cover"
+                  crossOrigin="anonymous"
+                />
+              ) : (
+                <img 
+                  src={`https://api.dicebear.com/9.x/shapes/svg?seed=${encodeURIComponent(group?.name || "Group")}&backgroundColor=0a5b83,1c799f,69d2e7,f1f4dc`}
+                  alt={group?.name}
+                  className="w-full h-full object-cover"
+                />
+              )}
+            </div>
             <div className="flex flex-col justify-center">
               <h1 className="text-[18px] sm:text-[20px] font-extrabold tracking-tight text-gray-900 leading-tight">
                 {group?.name || "Untitled Group"}
@@ -180,15 +220,52 @@ export default function GroupDetailPage() {
             </div>
           </div>
           
-          <motion.button 
-             whileHover={{ scale: 1.03 }}
-             whileTap={{ scale: 0.97 }}
-             onClick={() => setIsModalOpen(true)} 
-             className="hidden sm:flex items-center justify-center gap-2 rounded-xl bg-gray-900 px-5 py-2.5 text-[14px] font-semibold text-white shadow-[0_4px_14px_0_rgb(0,0,0,0.1)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] transition-[box-shadow,background-color] duration-300 outline-none"
-          >
-            Add a new expense
-          </motion.button>
+          <div className="flex items-center gap-3">
+            <NotificationBell userId={currentUser?.id} />
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleDeleteGroup}
+              disabled={isDeletingGroup}
+              title="Delete Group"
+              className="flex items-center justify-center w-[42px] h-[42px] rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition-colors shadow-sm disabled:opacity-50"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </motion.button>
+            <motion.button 
+               whileHover={{ scale: 1.03 }}
+               whileTap={{ scale: 0.97 }}
+               onClick={() => setIsModalOpen(true)} 
+               className="hidden sm:flex items-center justify-center gap-2 rounded-xl bg-gray-900 px-5 py-2.5 text-[14px] font-semibold text-white shadow-[0_4px_14px_0_rgb(0,0,0,0.1)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] transition-[box-shadow,background-color] duration-300 outline-none"
+            >
+              Add a new expense
+            </motion.button>
+          </div>
         </div>
+        
+        {/* Delete Error Message Overlay */}
+        <AnimatePresence>
+          {deleteError && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="max-w-4xl mx-auto px-6 mb-4"
+            >
+              <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl text-[14px] font-medium flex items-center gap-3 shadow-sm">
+                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>{deleteError}</span>
+                <button onClick={() => setDeleteError("")} className="ml-auto hover:text-red-800">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </nav>
 
       <motion.div 
@@ -199,32 +276,45 @@ export default function GroupDetailPage() {
       >
         
         {/* MEMBERS SECTION */}
-        <motion.section variants={fadeIn} className="bg-white rounded-[1.25rem] p-6 sm:p-7 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100/50">
-          <h2 className="text-[18px] font-bold tracking-tight text-gray-900 mb-5">Members</h2>
-          <div className="flex items-center gap-5 overflow-x-auto pb-4 scrollbar-hide">
+        <motion.section variants={fadeIn} className="bg-white rounded-[24px] p-6 sm:p-7 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100/80 relative overflow-hidden">
+          {/* Subtle background element */}
+          <div className="absolute top-0 right-0 w-[150px] h-[150px] bg-gradient-to-br from-indigo-50 to-transparent opacity-60 rounded-full blur-3xl pointer-events-none"></div>
+          
+          <h2 className="text-[19px] font-bold tracking-tight text-gray-900 mb-6 flex items-center gap-2 relative z-10">
+            Group Members
+            <span className="px-2 py-0.5 rounded-full bg-gray-100 text-[12px] font-semibold text-gray-500">{members.length}</span>
+          </h2>
+          
+          <div className="flex items-center gap-5 overflow-x-auto pb-4 pt-1 px-1 scrollbar-hide relative z-10">
             {members.map((member, index) => {
-              const memberName = member?.email?.split('@')[0] || member?.users?.name || member?.name || "User";
-              const initial = memberName.charAt(0).toUpperCase();
+              const memberName = member?.username || member?.email?.split('@')[0] || member?.users?.name || member?.name || "User";
               
               return (
-                <div key={member.id || index} className="group flex flex-col items-center gap-2.5 min-w-[4.5rem]">
-                  <div className="w-[3.5rem] h-[3.5rem] rounded-[1rem] bg-gray-50 text-gray-600 flex items-center justify-center text-[18px] font-bold border border-gray-100/80 shadow-[0_2px_8px_rgba(0,0,0,0.02)] group-hover:scale-105 group-hover:shadow-[0_8px_20px_rgba(0,0,0,0.06)] transition-all duration-300">
-                    {initial}
+                <div key={member.id || index} className="group flex flex-col items-center gap-3 min-w-[5rem]">
+                  <div className="w-[60px] h-[60px] rounded-[20px] bg-white border border-gray-100 shadow-[0_8px_16px_-4px_rgba(0,0,0,0.05)] overflow-hidden flex items-center justify-center p-[2px] group-hover:scale-[1.08] group-hover:-rotate-3 group-hover:shadow-[0_12px_24px_-6px_rgba(0,0,0,0.12)] group-hover:border-indigo-100 transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]">
+                    <div className="w-full h-full rounded-[16px] overflow-hidden bg-gradient-to-br from-gray-50 to-indigo-50/30">
+                       <img 
+                          src={`https://api.dicebear.com/9.x/micah/svg?seed=${encodeURIComponent(memberName)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffdfbf`} 
+                          alt={memberName} 
+                          className="w-full h-full object-cover"
+                          crossOrigin="anonymous"
+                       />
+                    </div>
                   </div>
-                  <span className="text-[12px] font-bold text-gray-500 truncate w-full text-center group-hover:text-gray-900 transition-colors tracking-tight">
+                  <span className="text-[13px] font-semibold text-gray-600 truncate w-full text-center group-hover:text-indigo-600 transition-colors tracking-tight">
                     {memberName}
                   </span>
                 </div>
               );
             })}
             
-            <div onClick={handleInviteClick} className="group flex flex-col items-center gap-2.5 min-w-[4.5rem] cursor-pointer">
-              <button disabled={isInviting} className="w-[3.5rem] h-[3.5rem] rounded-[1rem] bg-gray-50 border border-dashed border-gray-200 flex items-center justify-center text-gray-400 group-hover:border-gray-900 group-hover:bg-white group-hover:text-gray-900 group-hover:shadow-[0_8px_20px_rgba(0,0,0,0.06)] group-hover:scale-105 transition-all duration-300 outline-none">
+            <div onClick={handleInviteClick} className="group flex flex-col items-center gap-3 min-w-[5rem] cursor-pointer">
+              <button disabled={isInviting} className="w-[60px] h-[60px] rounded-[20px] bg-gray-50 border border-dashed border-gray-300 flex items-center justify-center text-gray-400 group-hover:border-indigo-300 group-hover:bg-indigo-50/50 group-hover:text-indigo-600 group-hover:shadow-[0_8px_20px_rgba(99,102,241,0.12)] group-hover:scale-[1.08] transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] outline-none">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
                 </svg>
               </button>
-              <span className="text-[12px] font-bold text-gray-400 group-hover:text-gray-900 transition-colors tracking-tight">Invite</span>
+              <span className="text-[13px] font-semibold text-gray-400 group-hover:text-indigo-600 transition-colors tracking-tight">Invite</span>
             </div>
           </div>
         </motion.section>
@@ -254,41 +344,22 @@ export default function GroupDetailPage() {
                 {expenses.map((expense, idx) => {
                   const isRecent = idx === 0;
                   const memberName = members.find(m => (m.user_id || m.id) === expense.paid_by);
-                  const actor = memberName ? (memberName.email?.split('@')[0] || memberName.users?.name || memberName.name) : "Someone";
+                  const actor = memberName ? (memberName.username || memberName.email?.split('@')[0] || memberName.users?.name || memberName.name) : "Someone";
                   const isSettled = expense.description === "Settle Up";
 
                   return (
-                    <motion.div 
-                      variants={fadeIn} 
-                      key={expense.id} 
-                      whileHover={{ scale: 1.02, y: -2 }}
-                      transition={{ duration: 0.2 }}
-                      className={`group flex items-center justify-between p-5 transition-[box-shadow,background-color] duration-300 hover:bg-gray-50/50 cursor-pointer ${isRecent ? 'bg-indigo-50/10' : ''}`}
-                    >
-                      <div className="flex items-center gap-4 sm:gap-5">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${isSettled ? 'bg-green-50 text-green-600 ring-4 ring-green-50/50' : 'bg-gray-50 border border-gray-100 text-gray-500'}`}>
-                          <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={isSettled ? "M5 13l4 4L19 7" : "M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"} />
-                          </svg>
-                        </div>
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-2.5">
-                            <h3 className="text-[15px] sm:text-[16px] font-bold tracking-tight text-gray-900 group-hover:text-black">
-                              {isSettled ? "Debt Settled" : (expense.description || "Untitled Expense")}
-                            </h3>
-                            {isRecent && <span className="px-2 py-0.5 rounded-md bg-indigo-100 text-[10px] font-black uppercase tracking-widest text-indigo-700">Latest</span>}
-                          </div>
-                          <p className="text-[14px] text-gray-500 mt-0.5 tracking-tight group-hover:text-gray-600 transition-colors">
-                            <span className="font-extrabold text-gray-700">{actor}</span> {isSettled ? "settled up" : "paid"} <span className="font-black text-gray-900">₹{expense.amount ? Number(expense.amount).toFixed(2) : "0.00"}</span>
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="text-right flex-shrink-0">
-                        <div className="text-[13px] font-bold tracking-tight text-gray-400">
-                          {expense.created_at ? new Date(expense.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : "Pending"}
-                        </div>
-                      </div>
+                    <motion.div variants={fadeIn} key={expense.id}>
+                      <SwipeableExpenseItem
+                        expense={expense}
+                        isRecent={isRecent}
+                        actor={actor}
+                        isSettled={isSettled}
+                        onDelete={(id) => {
+                          console.log("Delete expense:", id);
+                          // In a full implementation, call delete service here and update state.
+                          setExpenses(prev => prev.filter(e => e.id !== id));
+                        }}
+                      />
                     </motion.div>
                   );
                 })}
@@ -303,8 +374,8 @@ export default function GroupDetailPage() {
       </motion.div>
 
       {/* MOBILE FAB */}
-      <div className="fixed bottom-6 right-6 sm:hidden z-40">
-        <button onClick={() => setIsModalOpen(true)} className="flex items-center justify-center w-14 h-14 bg-gray-900 text-white rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.2)] hover:scale-105 active:scale-95 transition-all duration-300">
+      <div className="fixed bottom-[100px] right-6 sm:hidden z-40">
+        <button onClick={() => setIsModalOpen(true)} className="flex items-center justify-center w-14 h-14 bg-[#111111] text-white rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.25)] hover:scale-105 active:scale-95 transition-all duration-300">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
           </svg>
@@ -358,7 +429,7 @@ export default function GroupDetailPage() {
               <div className="p-8 pb-6 border-b border-gray-100/80 flex items-center justify-between">
                 <div>
                   <h2 className="text-[22px] font-semibold tracking-tight text-[#111111]">Invite Member</h2>
-                  <p className="text-[15px] font-medium text-[#86868B] mt-1.5">Add someone to this group.</p>
+                  <p className="text-[15px] font-medium text-[#86868B] mt-1.5">Add someone by their username.</p>
                 </div>
                 <button
                   onClick={() => setIsInviteModalOpen(false)}
@@ -370,14 +441,17 @@ export default function GroupDetailPage() {
               </div>
 
               <div className="p-8 pb-4">
-                <input
-                  type="email"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  placeholder="Enter user email..."
-                  disabled={isInviting}
-                  className="w-full px-5 py-4 text-[16px] font-medium text-[#111111] bg-gray-50/50 rounded-[14px] border border-gray-200/80 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] focus:bg-white focus:border-[#007AFF] focus:ring-[3px] focus:ring-[#007AFF]/15 outline-none transition-all duration-300 ease-out placeholder:text-[#86868B]"
-                />
+                <div className="relative">
+                  <span className="absolute left-5 top-1/2 -translate-y-1/2 text-[16px] text-[#86868B] font-medium select-none">@</span>
+                  <input
+                    type="text"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value.replace(/\s/g, ''))}
+                    placeholder="username"
+                    disabled={isInviting}
+                    className="w-full pl-10 pr-5 py-4 text-[16px] font-medium text-[#111111] bg-gray-50/50 rounded-[14px] border border-gray-200/80 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] focus:bg-white focus:border-[#007AFF] focus:ring-[3px] focus:ring-[#007AFF]/15 outline-none transition-all duration-300 ease-out placeholder:text-[#86868B]"
+                  />
+                </div>
                 <AnimatePresence>
                   {inviteError && (
                     <motion.p
@@ -411,6 +485,45 @@ export default function GroupDetailPage() {
                   ) : (
                     "Send Invite"
                   )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* CUSTOM DELETE CONFIRM MODAL */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#111111]/40 backdrop-blur-md p-4 transition-all duration-300 ease-out">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 12 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              className="w-full max-w-sm bg-white rounded-[24px] shadow-[0_40px_80px_-16px_rgba(0,0,0,0.25)] border border-white p-8 flex flex-col text-center"
+            >
+              <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <h2 className="text-[22px] font-bold tracking-tight text-[#111111] mb-3">Delete Group?</h2>
+              <p className="text-[15px] font-medium text-[#86868B] leading-relaxed mb-8">
+                Are you sure you want to delete <span className="text-[#111111] font-bold">"{group?.name}"</span>? All expenses and data will be permanently wiped.
+              </p>
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="w-full px-4 py-3.5 bg-gray-50 text-[15px] font-bold text-[#111111] rounded-[14px] hover:bg-gray-100 transition-all duration-300 active:scale-[0.98]"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="w-full px-4 py-3.5 bg-red-600 text-[15px] font-bold text-white rounded-[14px] hover:bg-red-700 shadow-[0_8px_20px_-6px_rgba(220,38,38,0.4)] transition-all duration-300 active:scale-[0.98]"
+                >
+                  Delete
                 </button>
               </div>
             </motion.div>
