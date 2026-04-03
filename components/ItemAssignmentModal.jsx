@@ -118,6 +118,7 @@ export default function ItemAssignmentModal({
 
   return (
     <motion.div
+      onClick={(e) => e.stopPropagation()}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -131,17 +132,16 @@ export default function ItemAssignmentModal({
         transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
         className="relative w-full max-w-[520px] bg-white sm:rounded-[2rem] rounded-t-[2rem] shadow-[0_24px_80px_rgba(0,0,0,0.2)] flex flex-col max-h-[95vh] sm:max-h-[90vh] overflow-hidden"
       >
-        {/* Header */}
-        <div className="px-7 pt-7 pb-4 flex items-center justify-between border-b border-gray-100/60">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-[0_4px_12px_rgba(245,158,11,0.3)]">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="px-8 pt-8 pb-5 flex items-center justify-between border-b border-gray-100/60 z-10 relative">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-orange-50 flex items-center justify-center border border-orange-100/50 shadow-[0_2px_10px_rgba(249,115,22,0.1)]">
+              <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-[17px] font-bold tracking-tight text-gray-900">Assign Items</h2>
-              <p className="text-[12px] font-medium text-gray-400 mt-0.5">Who had what?</p>
+              <h2 className="text-[20px] font-extrabold tracking-tight text-gray-900">Assign Items</h2>
+              <p className="text-[13px] font-medium text-gray-500 mt-0.5">Who had what?</p>
             </div>
           </div>
           <button
@@ -155,9 +155,9 @@ export default function ItemAssignmentModal({
         </div>
 
         {/* Member Legend */}
-        <div className="px-7 py-3 bg-gray-50/60 border-b border-gray-100/40">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 mr-1">Members:</span>
+        <div className="px-8 py-3.5 bg-gray-50/80 border-b border-gray-100/60 z-0 relative">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <span className="text-[11px] font-black uppercase tracking-widest text-gray-400 mr-1.5 pt-0.5">Members</span>
             {members.map((m, mIdx) => {
               const mId = m.user_id || m.id;
               return (
@@ -173,97 +173,60 @@ export default function ItemAssignmentModal({
         </div>
 
         {/* Items List */}
-        <div className="flex-1 overflow-y-auto px-7 py-4 space-y-2 scrollbar-hide">
+        <div className="flex-1 overflow-y-auto px-8 py-5 space-y-3.5 scrollbar-hide bg-gray-50/30">
           {items.map((item, idx) => {
             const assigned = assignments[idx] || [];
-            const isAllAssigned = assigned.length === members.length;
-            const isNoneAssigned = assigned.length === 0;
 
             return (
               <motion.div
                 key={idx}
-                initial={{ opacity: 0, y: 8 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.04, duration: 0.25 }}
-                className="bg-gray-50/80 rounded-2xl border border-gray-100/80 p-4 space-y-3"
+                transition={{ delay: idx * 0.04, duration: 0.3 }}
+                className="bg-white rounded-[1.25rem] border border-gray-200/60 p-5 shadow-[0_4px_16px_rgba(0,0,0,0.02)] hover:shadow-[0_6px_24px_rgba(0,0,0,0.06)] transition-shadow duration-300 space-y-3"
               >
                 {/* Item name + price */}
-                <div className="flex items-center justify-between">
-                  <span className="text-[14px] font-bold text-gray-900 truncate max-w-[60%]">{item.name}</span>
-                  <span className="text-[14px] font-black text-gray-900 tabular-nums">
+                <div className="flex items-center justify-between pb-1">
+                  <span className="text-[15px] font-extrabold text-gray-900 tracking-tight truncate max-w-[65%]">{item.name}</span>
+                  <span className="text-[15px] font-black text-gray-900 tabular-nums bg-gray-50 px-2.5 py-1 rounded-lg">
                     {currencySymbol}{item.price.toFixed(2)}
                   </span>
                 </div>
 
                 {/* Member assignment chips */}
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {members.map((m, mIdx) => {
+                <div className="flex items-center gap-2 flex-wrap mt-1">
+                  {members.map((m) => {
                     const mId = m.user_id || m.id;
                     const isAssigned = assigned.includes(mId);
 
                     return (
                       <motion.button
                         key={mId}
-                        whileTap={{ scale: 0.9 }}
+                        whileTap={{ scale: 0.95 }}
                         onClick={() => toggleMemberOnItem(idx, mId)}
-                        className={`relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[12px] font-bold transition-all duration-200 ${
+                        className={`group relative flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-bold transition-all duration-200 border ${
                           isAssigned
-                            ? 'bg-gray-900 text-white shadow-[0_2px_8px_rgba(0,0,0,0.15)]'
-                            : 'bg-white text-gray-400 border border-gray-200 hover:border-gray-300 hover:text-gray-600'
+                            ? 'bg-indigo-50 border-indigo-200 text-indigo-700 shadow-[0_2px_10px_rgba(79,70,229,0.1)]'
+                            : 'bg-white border-gray-200/80 text-gray-500 hover:border-gray-300 hover:bg-gray-50 shadow-sm'
                         }`}
                       >
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center transition-all ${
                           isAssigned 
-                            ? `bg-gradient-to-br ${memberColors[mIdx % memberColors.length]}`
-                            : 'bg-gray-100'
+                            ? 'bg-indigo-500 shadow-sm'
+                            : 'bg-gray-100 group-hover:bg-gray-200'
                         }`}>
-                          <span className={`text-[9px] font-bold ${isAssigned ? 'text-white' : 'text-gray-400'}`}>
-                            {getMemberInitial(m)}
-                          </span>
+                          {isAssigned ? (
+                             <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg>
+                          ) : (
+                             <span className="text-[10px] font-bold text-gray-400 group-hover:text-gray-500">
+                               {getMemberInitial(m)}
+                             </span>
+                          )}
                         </div>
                         {getMemberName(m)}
-                        {isAssigned && assigned.length > 1 && (
-                          <span className="text-[10px] font-medium text-gray-400 ml-0.5">
-                            {currencySymbol}{(item.price / assigned.length).toFixed(0)}
-                          </span>
-                        )}
                       </motion.button>
                     );
                   })}
-                </div>
-
-                {/* Quick actions */}
-                <div className="flex items-center gap-2 pt-1">
-                  <button
-                    onClick={() => {
-                      setAssignments(prev => ({
-                        ...prev,
-                        [idx]: members.map(m => m.user_id || m.id),
-                      }));
-                    }}
-                    className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-all ${
-                      isAllAssigned
-                        ? 'bg-indigo-50 text-indigo-600'
-                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    Everyone
-                  </button>
-                  <button
-                    onClick={() => {
-                      setAssignments(prev => ({
-                        ...prev,
-                        [idx]: [],
-                      }));
-                    }}
-                    className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md transition-all ${
-                      isNoneAssigned
-                        ? 'bg-gray-200 text-gray-600'
-                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    None
-                  </button>
                 </div>
               </motion.div>
             );
@@ -308,14 +271,14 @@ export default function ItemAssignmentModal({
         </div>
 
         {/* Summary */}
-        <div className="px-7 py-4 bg-gray-50/80 border-t border-gray-100/60 space-y-3">
+        <div className="px-8 py-5 bg-gray-50/80 border-t border-gray-100/80 space-y-3.5 relative z-10">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-black uppercase tracking-widest text-gray-400">Split Summary</span>
-            <span className="text-[12px] font-bold text-gray-500 tabular-nums">
-              Total: {currencySymbol}{computedTotal.toFixed(2)}
+            <span className="text-[14px] font-black text-gray-600 tabular-nums">
+              Total: <span className="text-gray-900">{currencySymbol}{computedTotal.toFixed(2)}</span>
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-3">
             {members.map((m, mIdx) => {
               const mId = m.user_id || m.id;
               const amount = memberTotals[mId] || 0;
@@ -323,15 +286,15 @@ export default function ItemAssignmentModal({
                 <motion.div
                   key={mId}
                   layout
-                  className="flex items-center justify-between bg-white rounded-xl px-3 py-2.5 border border-gray-100/80"
+                  className="flex items-center justify-between bg-white rounded-xl px-3.5 py-3 border border-gray-100/80 shadow-[0_2px_8px_rgba(0,0,0,0.03)]"
                 >
-                  <div className="flex items-center gap-2">
-                    <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${memberColors[mIdx % memberColors.length]} flex items-center justify-center`}>
-                      <span className="text-[10px] font-bold text-white">{getMemberInitial(m)}</span>
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${memberColors[mIdx % memberColors.length]} flex items-center justify-center shadow-inner`}>
+                      <span className="text-[11px] font-bold text-white">{getMemberInitial(m)}</span>
                     </div>
-                    <span className="text-[13px] font-bold text-gray-700 truncate max-w-[60px]">{getMemberName(m)}</span>
+                    <span className="text-[13px] font-bold text-gray-700 truncate max-w-[65px] tracking-tight">{getMemberName(m)}</span>
                   </div>
-                  <span className={`text-[14px] font-black tabular-nums ${amount > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
+                  <span className={`text-[15px] font-black tabular-nums tracking-tight ${amount > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
                     {currencySymbol}{amount.toFixed(2)}
                   </span>
                 </motion.div>
@@ -341,15 +304,15 @@ export default function ItemAssignmentModal({
         </div>
 
         {/* Action Button */}
-        <div className="p-6 bg-white/80 backdrop-blur-sm border-t border-gray-100/50">
+        <div className="p-6 bg-white/80 backdrop-blur-md border-t border-gray-100/50 relative z-20">
           <motion.button
             whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
+            whileTap={{ scale: 0.98 }}
             onClick={handleComplete}
-            className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-[15px] font-bold text-white bg-gray-900 shadow-[0_8px_24px_rgba(0,0,0,0.15)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.25)] hover:bg-black transition-all duration-300"
+            className="w-full flex items-center justify-center gap-2.5 py-4 rounded-[1.25rem] text-[16px] font-bold text-white bg-gray-900 shadow-[0_8px_24px_rgba(0,0,0,0.15)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.25)] hover:bg-black transition-all duration-300"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+            <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
             </svg>
             Use This Split — {currencySymbol}{computedTotal.toFixed(2)}
           </motion.button>

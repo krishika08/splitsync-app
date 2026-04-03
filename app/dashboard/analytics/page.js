@@ -24,6 +24,18 @@ const fadeUp = {
   },
 };
 
+// ─── SVG Icons Dictionary ────────────────────────────────────────────
+const CATEGORY_ICONS = {
+  food: "M4 4h16v12a4 4 0 01-4 4H8a4 4 0 01-4-4V4zm4 0v16M20 8h2v4h-2",
+  transport: "M9 19V6l-4 3v13l4-3zm0 0l6-3v13l-6 3zm6-3l4 3V6l-4-3v13z",
+  shopping: "M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z",
+  entertainment: "M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+  bills: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
+  health: "M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z",
+  travel: "M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+  other: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4",
+};
+
 // ─── Page ──────────────────────────────────────────────────────────
 export default function AnalyticsPage() {
   const router = useRouter();
@@ -89,30 +101,27 @@ export default function AnalyticsPage() {
       className="min-h-screen relative text-[#111111] font-sans pb-24 selection:bg-indigo-100 selection:text-[#111111]"
     >
       {/* Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-20 bg-gradient-to-br from-gray-50 via-white to-indigo-50/20">
-        <div className="absolute top-[-10%] left-[-5%] w-[45vw] max-w-[500px] h-[45vw] max-h-[500px] bg-purple-200/15 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-5%] w-[50vw] max-w-[600px] h-[50vw] max-h-[600px] bg-blue-200/15 rounded-full blur-[140px]" />
+      <div className="fixed inset-0 pointer-events-none -z-20 bg-[#F8FAFC]">
+        <div className="absolute top-0 right-0 w-[60vw] max-w-[800px] h-[400px] bg-gradient-to-r from-indigo-50/60 to-purple-50/60 blur-[100px] rounded-full translate-x-1/4 -translate-y-1/2 opacity-70" />
+        <div className="absolute top-1/3 left-0 w-[40vw] max-w-[600px] h-[500px] bg-gradient-to-tr from-blue-50/50 to-emerald-50/30 blur-[120px] rounded-full -translate-x-1/2 opacity-60" />
       </div>
 
       {/* Navbar */}
-      <nav className="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-gray-200/60 shadow-[0_4px_30px_-10px_rgba(0,0,0,0.02)]">
+      <nav className="sticky top-0 z-40 w-full bg-white/70 backdrop-blur-2xl border-b border-gray-100/60 transition-all shadow-[0_2px_10px_rgba(0,0,0,0.01)]">
         <div className="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.push("/dashboard")}
-              className="group w-10 h-10 rounded-full bg-white shadow-[0_2px_10px_rgba(0,0,0,0.04)] border border-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-all duration-300 hover:scale-[1.03]"
+              className="group w-10 h-10 rounded-full flex items-center justify-center bg-gray-50/50 border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] text-gray-500 hover:bg-white hover:text-indigo-600 hover:border-indigo-100 hover:shadow-sm transition-all duration-300"
             >
               <svg className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
             <div>
-              <h1 className="text-[18px] sm:text-[20px] font-extrabold tracking-tight text-gray-900">
+              <h1 className="text-[19px] font-black tracking-tight text-gray-900 drop-shadow-sm">
                 Analytics & Reports
               </h1>
-              <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">
-                Spending Insights
-              </p>
             </div>
           </div>
           <div className="flex h-[32px] w-[32px] items-center justify-center rounded-[10px] bg-[#111111] text-white shadow-[0_2px_12px_-4px_rgba(0,0,0,0.5)] font-bold text-[12px] tracking-widest">
@@ -129,15 +138,15 @@ export default function AnalyticsPage() {
         className="mx-auto max-w-5xl px-6 py-10 space-y-10 relative z-10"
       >
         {/* Time Range Selector */}
-        <motion.div variants={fadeUp} className="flex flex-wrap gap-2">
+        <motion.div variants={fadeUp} className="flex flex-wrap gap-1 p-1.5 bg-white/60 backdrop-blur-xl rounded-[1.25rem] w-fit border border-gray-200/50 shadow-[0_2px_12px_rgba(0,0,0,0.03)] ring-1 ring-white/50">
           {timeRanges.map((r) => (
             <button
               key={r.id}
               onClick={() => handleRangeChange(r.id)}
               className={`px-4 py-2 rounded-xl text-[13px] font-bold tracking-tight transition-all duration-300 ${
                 timeRange === r.id
-                  ? "bg-[#111111] text-white shadow-[0_4px_14px_rgba(0,0,0,0.15)]"
-                  : "bg-white/80 text-gray-500 border border-gray-200/60 hover:bg-white hover:text-gray-900 hover:border-gray-300"
+                  ? "bg-gray-900 text-white shadow-[0_4px_14px_rgba(0,0,0,0.2)] border border-transparent"
+                  : "bg-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50"
               }`}
             >
               {r.label}
@@ -163,26 +172,26 @@ export default function AnalyticsPage() {
                 icon={
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 }
-                color="text-indigo-600"
-                bgColor="bg-indigo-50"
+                color="text-white"
+                bgColor="bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-[0_4px_12px_rgba(99,102,241,0.3)]"
               />
               <SummaryCard
                 label="Monthly Avg"
                 value={`₹${formatNumber(data.monthlyAverage)}`}
                 icon={
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                 }
-                color="text-emerald-600"
-                bgColor="bg-emerald-50"
+                color="text-emerald-500"
+                bgColor="bg-emerald-50/80 border-emerald-100/50"
               />
               <SummaryCard
                 label="Transactions"
                 value={data.transactionCount}
                 icon={
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                 }
-                color="text-violet-600"
-                bgColor="bg-violet-50"
+                color="text-violet-500"
+                bgColor="bg-violet-50/80 border-violet-100/50"
               />
               <SummaryCard
                 label="Biggest Expense"
@@ -235,9 +244,9 @@ export default function AnalyticsPage() {
 
 // ─── Helper ────────────────────────────────────────────────────────
 function formatNumber(num) {
-  if (num >= 100000) return (num / 100000).toFixed(1) + "L";
-  if (num >= 1000) return (num / 1000).toFixed(1) + "K";
-  return num.toFixed(2);
+  return new Intl.NumberFormat('en-IN', {
+    maximumFractionDigits: 0,
+  }).format(num);
 }
 
 // ─── Empty State ───────────────────────────────────────────────────
@@ -264,15 +273,14 @@ function EmptyState() {
 // ─── Summary Card ──────────────────────────────────────────────────
 function SummaryCard({ label, value, subtitle, icon, color, bgColor }) {
   return (
-    <div className="group relative overflow-hidden bg-white/80 backdrop-blur-md rounded-[20px] p-5 border border-gray-200/60 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.02)] transition-all duration-300 hover:shadow-[0_16px_32px_-8px_rgba(0,0,0,0.06)] hover:-translate-y-0.5">
-      <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full opacity-20 blur-2xl group-hover:opacity-30 transition-opacity" style={{ backgroundColor: "currentColor" }} />
-      <div className={`w-10 h-10 rounded-xl ${bgColor} flex items-center justify-center ${color} mb-3`}>
+    <div className="group relative bg-white/70 backdrop-blur-2xl rounded-[20px] p-6 border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.05)] transition-all duration-300 hover:-translate-y-0.5">
+      <div className={`w-11 h-11 rounded-xl ${bgColor} flex items-center justify-center ${color} mb-5 border border-white/50 ring-1 ring-black/5`}>
         {icon}
       </div>
-      <p className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-1">{label}</p>
-      <p className="text-[24px] sm:text-[28px] font-extrabold tracking-tighter text-gray-900 leading-none">{value}</p>
+      <p className="text-[12px] font-bold text-gray-500 mb-1">{label}</p>
+      <p className="text-[26px] sm:text-[30px] font-black tracking-tight text-gray-900 leading-none">{value}</p>
       {subtitle && (
-        <p className="text-[12px] font-semibold text-gray-400 mt-1 truncate">{subtitle}</p>
+        <p className="text-[12px] font-semibold text-gray-400 mt-2 truncate max-w-full">{subtitle}</p>
       )}
     </div>
   );
@@ -302,8 +310,8 @@ function DonutChart({ categories, totalSpent }) {
   }, [categories, totalSpent]);
 
   return (
-    <div className="bg-white/80 backdrop-blur-md rounded-[20px] p-6 sm:p-8 border border-gray-200/60 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.02)]">
-      <h3 className="text-[16px] font-bold tracking-tight text-gray-900 mb-6">
+    <div className="bg-white/70 backdrop-blur-2xl rounded-[1.25rem] p-6 sm:p-8 border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.02)] h-full">
+      <h3 className="text-[16px] font-black tracking-tight text-gray-900 mb-8 border-b border-gray-100/80 pb-4">
         Spending by Category
       </h3>
       <div className="flex flex-col sm:flex-row items-center gap-8">
@@ -354,10 +362,10 @@ function DonutChart({ categories, totalSpent }) {
                   </>
                 ) : (
                   <>
-                    <p className="text-[18px] font-extrabold tracking-tighter text-gray-900">
+                    <p className="text-[24px] font-semibold tracking-tight text-gray-900">
                       ₹{formatNumber(totalSpent)}
                     </p>
-                    <p className="text-[11px] font-bold text-gray-400 mt-0.5">Total</p>
+                    <p className="text-[13px] font-medium text-gray-500 mt-1">Total</p>
                   </>
                 )}
               </motion.div>
@@ -372,24 +380,28 @@ function DonutChart({ categories, totalSpent }) {
               key={cat.id}
               onMouseEnter={() => setHoveredIdx(i)}
               onMouseLeave={() => setHoveredIdx(null)}
-              className={`flex items-center justify-between py-2 px-3 rounded-xl transition-all duration-200 cursor-pointer ${
-                hoveredIdx === i ? "bg-gray-50" : ""
+              className={`flex items-center justify-between py-2.5 px-3.5 rounded-xl border transition-all duration-200 cursor-pointer ${
+                hoveredIdx === i ? "bg-white border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.04)] scale-[1.02]" : "border-transparent"
               }`}
             >
               <div className="flex items-center gap-3">
                 <div
-                  className="w-3 h-3 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: cat.color }}
-                />
-                <span className="text-[13px] font-bold text-gray-700 truncate">
-                  {cat.icon} {cat.label}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center border border-white/50 shadow-sm"
+                  style={{ backgroundColor: `${cat.color}20`, color: cat.color }}
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path d={CATEGORY_ICONS[cat.id] || CATEGORY_ICONS.other} strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <span className="text-[14px] font-bold text-gray-700 truncate">
+                  {cat.label}
                 </span>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-[13px] font-extrabold text-gray-900 tabular-nums">
+              <div className="flex items-baseline gap-3">
+                <span className="text-[14px] font-black text-gray-900 tabular-nums">
                   ₹{formatNumber(cat.total)}
                 </span>
-                <span className="text-[11px] font-bold text-gray-400 tabular-nums w-10 text-right">
+                <span className="text-[12px] font-bold text-gray-400 tabular-nums w-10 text-right">
                   {cat.percentage}%
                 </span>
               </div>
@@ -414,8 +426,8 @@ function BarChart({ monthlyData }) {
   const visibleData = monthlyData.slice(-12);
 
   return (
-    <div className="bg-white/80 backdrop-blur-md rounded-[20px] p-6 sm:p-8 border border-gray-200/60 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.02)] h-full flex flex-col">
-      <h3 className="text-[16px] font-bold tracking-tight text-gray-900 mb-6">
+    <div className="bg-white/70 backdrop-blur-2xl rounded-[1.25rem] p-6 sm:p-8 border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.02)] h-full flex flex-col">
+      <h3 className="text-[16px] font-black tracking-tight text-gray-900 mb-8 border-b border-gray-100/80 pb-4">
         Monthly Spending
       </h3>
 
@@ -443,10 +455,10 @@ function BarChart({ monthlyData }) {
                       initial={{ opacity: 0, y: 4 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 4 }}
-                      className="absolute -top-12 left-1/2 -translate-x-1/2 bg-[#111111] text-white px-3 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap shadow-lg z-20"
+                      className="absolute -top-12 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-3.5 py-1.5 rounded-xl text-[12px] font-bold whitespace-nowrap shadow-[0_8px_20px_rgba(0,0,0,0.15)] z-20 border border-white/10"
                     >
                       ₹{d.total.toFixed(2)}
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-[#111111]" />
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[5px] border-transparent border-t-gray-900" />
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -461,16 +473,16 @@ function BarChart({ monthlyData }) {
                       delay: i * 0.05,
                       ease: [0.16, 1, 0.3, 1],
                     }}
-                    className={`w-full max-w-[40px] rounded-t-lg transition-all duration-200 cursor-pointer ${
+                    className={`w-full max-w-[40px] rounded-t-xl transition-all duration-300 cursor-pointer ${
                       isHovered
-                        ? "bg-gradient-to-t from-indigo-600 to-indigo-400 shadow-[0_4px_16px_rgba(99,102,241,0.3)]"
-                        : "bg-gradient-to-t from-indigo-500/80 to-indigo-400/60"
+                        ? "bg-gradient-to-t from-gray-900 to-gray-700 shadow-sm scale-y-[1.02] origin-bottom"
+                        : "bg-gray-200/80 hover:bg-gray-300/80"
                     }`}
                   />
                 </div>
 
                 {/* Label */}
-                <span className={`text-[10px] font-bold transition-colors ${isHovered ? "text-gray-900" : "text-gray-400"}`}>
+                <span className={`text-[12px] font-medium transition-colors ${isHovered ? "text-gray-900" : "text-gray-500"}`}>
                   {d.label}
                 </span>
               </div>
@@ -509,9 +521,9 @@ function LineChart({ data, categoryIds, categories }) {
   const getY = (v) => padding.top + innerH - (v / maxVal) * innerH;
 
   return (
-    <div className="bg-white/80 backdrop-blur-md rounded-[20px] p-6 sm:p-8 border border-gray-200/60 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.02)]">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-[16px] font-bold tracking-tight text-gray-900">
+    <div className="bg-white/70 backdrop-blur-2xl rounded-[1.25rem] p-6 sm:p-8 border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
+      <div className="flex items-center justify-between mb-8 border-b border-gray-100/80 pb-4">
+        <h3 className="text-[16px] font-black tracking-tight text-gray-900">
           Category Trends
         </h3>
         <div className="flex gap-3 flex-wrap">
@@ -639,11 +651,11 @@ function GroupBreakdown({ groups, totalSpent }) {
   const colors = ["#6366F1", "#8B5CF6", "#EC4899", "#F97316", "#10B981", "#06B6D4", "#F59E0B", "#64748B"];
 
   return (
-    <div className="bg-white/80 backdrop-blur-md rounded-[20px] p-6 sm:p-8 border border-gray-200/60 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.02)] h-full">
-      <h3 className="text-[16px] font-bold tracking-tight text-gray-900 mb-6">
+    <div className="bg-white/70 backdrop-blur-2xl rounded-[1.25rem] p-6 sm:p-8 border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.02)] h-full">
+      <h3 className="text-[16px] font-black tracking-tight text-gray-900 mb-8 border-b border-gray-100/80 pb-4">
         Spending by Group
       </h3>
-      <div className="space-y-4">
+      <div className="space-y-6 pt-2">
         {groups.map((g, i) => (
           <div key={i} className="space-y-1.5">
             <div className="flex items-center justify-between">
@@ -678,34 +690,39 @@ function TopExpenses({ expenses }) {
   if (!expenses || expenses.length === 0) return null;
 
   return (
-    <div className="bg-white/80 backdrop-blur-md rounded-[20px] p-6 sm:p-8 border border-gray-200/60 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.02)] h-full">
-      <h3 className="text-[16px] font-bold tracking-tight text-gray-900 mb-6">
+    <div className="bg-white/70 backdrop-blur-2xl rounded-[1.25rem] p-6 sm:p-8 border border-gray-100/80 shadow-[0_4px_24px_rgba(0,0,0,0.02)] h-full">
+      <h3 className="text-[16px] font-black tracking-tight text-gray-900 mb-6 border-b border-gray-100/80 pb-4">
         Top Expenses
       </h3>
-      <div className="space-y-1">
+      <div className="space-y-2 pt-2">
         {expenses.map((exp, i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, x: -12 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.08 }}
-            className="flex items-center justify-between py-3 px-3 rounded-xl hover:bg-gray-50/80 transition-colors group cursor-default"
+            className="flex items-center justify-between p-3.5 rounded-xl border border-gray-100/60 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:border-gray-200 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all duration-300 group cursor-default"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[16px] bg-gray-50 border border-gray-100 group-hover:scale-105 transition-transform">
-                {exp.category?.icon || "📦"}
+            <div className="flex items-center gap-4">
+              <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform border border-white/50"
+                style={{ backgroundColor: exp.category ? `${exp.category.color}15` : "#F1F5F9", color: exp.category?.color || "#64748B" }}
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path d={CATEGORY_ICONS[exp.category?.id] || CATEGORY_ICONS.other} strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               </div>
               <div>
                 <p className="text-[14px] font-bold text-gray-900 tracking-tight truncate max-w-[160px]">
                   {exp.description}
                 </p>
-                <p className="text-[11px] font-semibold text-gray-400">
+                <p className="text-[12px] font-semibold text-gray-400 mt-0.5">
                   {exp.group} · {new Date(exp.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                 </p>
               </div>
             </div>
-            <span className="text-[15px] font-extrabold text-gray-900 tabular-nums">
-              ₹{exp.amount.toFixed(2)}
+            <span className="text-[15px] font-black text-gray-900 tabular-nums tracking-tight">
+              ₹{formatNumber(exp.amount)}
             </span>
           </motion.div>
         ))}

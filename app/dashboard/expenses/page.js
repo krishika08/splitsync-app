@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useState, useMemo, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import {
@@ -40,7 +40,7 @@ function shiftMonth(my, delta) {
 }
 
 // ─── Main Page ──────────────────────────────────────────────────────
-export default function PersonalExpensesPage() {
+function PersonalExpensesContent() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
@@ -56,6 +56,9 @@ export default function PersonalExpensesPage() {
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
 
+  const searchParams = useSearchParams();
+  const actionParam = searchParams.get("action");
+
   useEffect(() => {
     const init = async () => {
       const { data: { user: u } } = await supabase.auth.getUser();
@@ -65,6 +68,16 @@ export default function PersonalExpensesPage() {
     };
     init();
   }, []);
+
+  useEffect(() => {
+    if (actionParam === "add") {
+      setShowAddModal(true);
+      router.replace("/dashboard/expenses");
+    } else if (actionParam === "budget") {
+      setShowBudgetModal(true);
+      router.replace("/dashboard/expenses");
+    }
+  }, [actionParam, router]);
 
   const loadData = useCallback(async (month) => {
     setLoading(true);
@@ -373,7 +386,6 @@ export default function PersonalExpensesPage() {
                               <p className="text-[14px] font-bold text-gray-900 tracking-tight">{exp.description}</p>
                               <p className="text-[12px] font-medium text-gray-400 mt-0.5">
                                 {cat.label} · {new Date(exp.expense_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                                {exp.is_recurring && <span className="ml-1.5 text-blue-500">🔄 {exp.recurrence_interval}</span>}
                               </p>
                             </div>
                           </div>
@@ -408,6 +420,14 @@ export default function PersonalExpensesPage() {
   );
 }
 
+export default function PersonalExpensesPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PersonalExpensesContent />
+    </Suspense>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // SUB-COMPONENTS
 // ═══════════════════════════════════════════════════════════════════
@@ -427,7 +447,7 @@ function CategoryDonut({ categories, totalSpent }) {
   const [hovered, setHovered] = useState(null);
   const segments = useMemo(() => {
     if (!categories?.length) return [];
-    const r = 80, c = 2 * Math.PI * r;
+    const r = 70, c = 2 * Math.PI * r;
     let off = 0;
     return categories.map((cat, i) => {
       const frac = cat.total / totalSpent;
@@ -439,18 +459,18 @@ function CategoryDonut({ categories, totalSpent }) {
   }, [categories, totalSpent]);
 
   return (
-    <div className="bg-white/80 backdrop-blur-md rounded-[20px] p-6 sm:p-8 border border-gray-200/60 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.02)] h-full">
-      <h3 className="text-[16px] font-bold tracking-tight text-gray-900 mb-6">Where&apos;s Your Money Going?</h3>
-      <div className="flex flex-col sm:flex-row items-center gap-8">
+    <div className="bg-white/80 backdrop-blur-md rounded-[24px] p-6 sm:p-8 border border-gray-200/60 shadow-[0_4px_16px_rgba(0,0,0,0.02)] h-full overflow-hidden">
+      <h3 className="text-[17px] font-black tracking-tight text-gray-900 mb-8 border-b border-gray-100/60 pb-4">Where&apos;s Your Money Going?</h3>
+      <div className="flex flex-col lg:flex-row items-center gap-10">
         <div className="relative w-[180px] h-[180px] flex-shrink-0">
           <svg viewBox="0 0 200 200" className="w-full h-full -rotate-90">
             {segments.map((s, i) => (
               <motion.circle key={s.id} cx="100" cy="100" r={s.r} fill="none" stroke={s.color}
-                strokeWidth={hovered === i ? 28 : 24} strokeDasharray={s.dashArray} strokeDashoffset={s.dashOffset}
-                strokeLinecap="butt" className="transition-all duration-300 cursor-pointer"
+                strokeWidth={hovered === i ? 24 : 20} strokeDasharray={s.dashArray} strokeDashoffset={s.dashOffset}
+                strokeLinecap="round" className="transition-all duration-300 cursor-pointer"
                 style={{ opacity: hovered !== null && hovered !== i ? 0.3 : 1 }}
                 initial={{ strokeDasharray: `0 ${2 * Math.PI * s.r}` }} animate={{ strokeDasharray: s.dashArray }}
-                transition={{ duration: 0.8, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ duration: 1, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
                 onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)} />
             ))}
           </svg>
@@ -458,27 +478,29 @@ function CategoryDonut({ categories, totalSpent }) {
             <AnimatePresence mode="wait">
               <motion.div key={hovered ?? "t"} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="text-center">
                 {hovered !== null && segments[hovered] ? (
-                  <><p className="text-[20px] font-extrabold tracking-tighter text-gray-900">{segments[hovered].percentage}%</p><p className="text-[11px] font-bold text-gray-400 mt-0.5">{segments[hovered].label}</p></>
+                  <><p className="text-[22px] font-black tracking-tight text-gray-900">{segments[hovered].percentage}%</p><p className="text-[12px] font-bold text-gray-400">{segments[hovered].label}</p></>
                 ) : (
-                  <><p className="text-[18px] font-extrabold tracking-tighter text-gray-900">₹{formatMoney(totalSpent)}</p><p className="text-[11px] font-bold text-gray-400 mt-0.5">Total</p></>
+                  <><p className="text-[18px] font-black tracking-tight text-gray-900">₹{totalSpent.toFixed(0)}</p><p className="text-[11px] font-bold text-gray-400 mt-0.5">Total</p></>
                 )}
               </motion.div>
             </AnimatePresence>
           </div>
         </div>
-        <div className="flex-1 grid grid-cols-1 gap-1.5 w-full">
+        <div className="flex-1 grid grid-cols-1 gap-2 w-full">
           {categories.map((cat, i) => (
-            <div key={cat.id} onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}
-              className={`flex items-center justify-between py-2 px-3 rounded-xl transition-all cursor-pointer ${hovered === i ? "bg-gray-50" : ""}`}>
-              <div className="flex items-center gap-2.5">
-                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
-                <span className="text-[13px] font-bold text-gray-700">{cat.icon} {cat.label}</span>
+            <motion.div key={cat.id} onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}
+              className={`flex items-center justify-between py-2.5 px-3.5 rounded-xl transition-all cursor-pointer border ${hovered === i ? "bg-gray-50 border-gray-200 shadow-sm" : "border-transparent"}`}>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[16px] border border-white/50 shadow-sm" style={{ backgroundColor: `${cat.color}15`, color: cat.color }}>
+                  {cat.icon}
+                </div>
+                <span className="text-[14px] font-bold text-gray-700">{cat.label}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[13px] font-extrabold text-gray-900 tabular-nums">₹{formatMoney(cat.total)}</span>
-                <span className="text-[11px] font-bold text-gray-400 w-9 text-right">{cat.percentage}%</span>
+              <div className="flex items-baseline gap-3">
+                <span className="text-[14px] font-black text-gray-900 tabular-nums">₹{cat.total.toFixed(0)}</span>
+                <span className="text-[12px] font-bold text-gray-400 w-9 text-right">{cat.percentage}%</span>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
@@ -490,35 +512,86 @@ function CategoryDonut({ categories, totalSpent }) {
 function DailyTrendChart({ data, budget }) {
   const [hoveredIdx, setHoveredIdx] = useState(null);
   const maxVal = useMemo(() => Math.max(...data.map(d => d.total), 1), [data]);
-  const dailyLimit = budget?.total_limit ? budget.total_limit / data.length : 0;
+  const totalLimit = budget?.total_limit || 0;
+  const dailyLimit = totalLimit > 0 ? totalLimit / data.length : 0;
+
+  // Find the y-position for the budget line (percentage from bottom)
+  const budgetLineY = dailyLimit > 0 ? (dailyLimit / maxVal) * 100 : 0;
 
   return (
-    <div className="bg-white/80 backdrop-blur-md rounded-[20px] p-6 sm:p-8 border border-gray-200/60 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.02)] h-full flex flex-col">
-      <h3 className="text-[16px] font-bold tracking-tight text-gray-900 mb-6">Daily Spending</h3>
-      <div className="flex-1 flex items-end gap-[2px] min-h-[200px]">
+    <div className="bg-white/80 backdrop-blur-md rounded-[24px] p-6 sm:p-8 border border-gray-200/60 shadow-[0_4px_24px_rgba(0,0,0,0.02)] h-full flex flex-col overflow-hidden relative group">
+      <div className="flex items-center justify-between mb-8 border-b border-gray-100/60 pb-4">
+        <h3 className="text-[17px] font-black tracking-tight text-gray-900">Daily Spending</h3>
+        {dailyLimit > 0 && (
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-[1px] border-t border-dashed border-gray-400" />
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Limit: ₹{dailyLimit.toFixed(0)}/day</span>
+          </div>
+        )}
+      </div>
+
+      <div className="flex-1 flex items-end gap-[4px] min-h-[220px] pb-8 relative">
+        {/* Background Grid Lines */}
+        <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-[0.03] py-8">
+          <div className="w-full h-[1px] bg-gray-900" />
+          <div className="w-full h-[1px] bg-gray-900" />
+          <div className="w-full h-[1px] bg-gray-900" />
+          <div className="w-full h-[1px] bg-gray-900" />
+        </div>
+
+        {/* Budget Baseline Line */}
+        {dailyLimit > 0 && budgetLineY < 100 && (
+          <motion.div 
+            initial={{ opacity: 0, width: 0 }}
+            animate={{ opacity: 1, width: "100%" }}
+            transition={{ delay: 1, duration: 1 }}
+            className="absolute z-10 border-t border-dashed border-gray-300 pointer-events-none"
+            style={{ bottom: `calc(${budgetLineY}% + 32px)` }}
+          >
+            <div className="absolute -right-1 -top-[3px] w-1.5 h-1.5 rounded-full bg-gray-300" />
+          </motion.div>
+        )}
+
         {data.map((d, i) => {
           const h = d.total > 0 ? (d.total / maxVal) * 100 : 0;
           const isOver = dailyLimit > 0 && d.total > dailyLimit;
           const isH = hoveredIdx === i;
+          
           return (
-            <div key={d.date} className="flex-1 flex flex-col items-center gap-1 relative group"
+            <div key={d.date} className="flex-1 flex flex-col items-center gap-2 relative h-full"
               onMouseEnter={() => setHoveredIdx(i)} onMouseLeave={() => setHoveredIdx(null)}>
+              
               <AnimatePresence>
                 {isH && d.total > 0 && (
-                  <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
-                    className="absolute -top-12 left-1/2 -translate-x-1/2 bg-[#111111] text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold whitespace-nowrap shadow-lg z-20">
-                    ₹{formatMoney(d.total)}
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-[#111111]" />
+                  <motion.div initial={{ opacity: 0, scale: 0.9, y: -8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: -8 }}
+                    className="absolute -top-14 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-3.5 py-2 rounded-xl text-[12px] font-black whitespace-nowrap shadow-[0_12px_24px_rgba(0,0,0,0.2)] z-30 border border-white/10 ring-4 ring-black/5">
+                    ₹{d.total.toFixed(0)}
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-transparent border-t-gray-900" />
                   </motion.div>
                 )}
               </AnimatePresence>
-              <div className="w-full flex items-end justify-center" style={{ height: "200px" }}>
-                <motion.div initial={{ height: 0 }} animate={{ height: `${Math.max(h, d.total > 0 ? 3 : 0)}%` }}
-                  transition={{ duration: 0.5, delay: i * 0.02, ease: [0.16, 1, 0.3, 1] }}
-                  className={`w-full rounded-t-sm transition-all cursor-pointer ${isOver ? (isH ? "bg-red-500" : "bg-red-400/80") : (isH ? "bg-emerald-500" : "bg-emerald-400/60")}`} />
+
+              <div className="w-full flex items-end justify-center h-full relative cursor-pointer">
+                {/* Ghost Bar Placeholder */}
+                <div className="absolute bottom-0 w-full h-[4px] bg-gray-100 rounded-full opacity-40" />
+                
+                {/* Actual Spending Bar */}
+                <motion.div 
+                  initial={{ height: 0 }} 
+                  animate={{ height: `${Math.max(h, 0)}%` }}
+                  transition={{ duration: 0.7, delay: i * 0.02, ease: [0.16, 1, 0.3, 1] }}
+                  className={`w-full rounded-full relative z-20 transition-all duration-300 ${
+                    isH 
+                      ? (isOver ? "bg-gradient-to-t from-red-600 to-rose-400 shadow-[0_0_20px_rgba(225,29,72,0.4)]" : "bg-gradient-to-t from-indigo-600 to-indigo-400 shadow-[0_0_20px_rgba(79,70,229,0.4)]") 
+                      : (isOver ? "bg-rose-200/80" : "bg-indigo-200/50")
+                  } ${h > 0 ? "min-h-[6px]" : "h-0"}`}
+                />
               </div>
+
               {(i % 5 === 0 || i === data.length - 1) && (
-                <span className="text-[9px] font-bold text-gray-400">{d.label}</span>
+                <span className={`absolute -bottom-2 text-[10px] font-black transition-colors duration-300 ${isH ? "text-gray-900" : "text-gray-300"}`}>
+                  {d.label}
+                </span>
               )}
             </div>
           );

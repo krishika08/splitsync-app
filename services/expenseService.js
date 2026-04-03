@@ -23,16 +23,13 @@ export async function createExpense({
     }
     const safeAmountNum = Number(amountNum.toFixed(2));
 
-    // With RLS as currently defined, `paid_by` must be the current authenticated user.
+    // With RLS updated, `paid_by` can be any member in the group.
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
     if (authError || !user) {
       return { success: false, error: "Not authenticated" };
-    }
-    if (paidBy && paidBy !== user.id) {
-      return { success: false, error: "paidBy must match current user" };
     }
 
     // --- 1) Prepare splits dynamically BEFORE inserting anything ---
@@ -103,7 +100,7 @@ export async function createExpense({
       .from("expenses")
       .insert({
         group_id: groupId,
-        paid_by: user.id,
+        paid_by: paidBy || user.id,
         amount: safeAmountNum,
         description,
       })
