@@ -241,82 +241,64 @@ function PersonalExpensesContent() {
         ) : (
           <>
             {/* ─── PENDING EXPENSES ALERT ─── */}
+            {/* ─── PENDING EXPENSES ALERT ─── */}
+            {/* ─── PENDING EXPENSES ALERT ─── */}
             <AnimatePresence>
               {pendingExpenses.length > 0 && (
-                <motion.div variants={fadeUp} className="bg-gradient-to-br from-[#1C1A17] to-[#121110] rounded-[32px] p-1.5 shadow-[0_20px_40px_-10px_rgba(245,158,11,0.25)] relative overflow-hidden group">
-                  {/* Animated glow backgrounds */}
-                  <div className="absolute -top-32 -left-32 w-80 h-80 bg-amber-500/20 rounded-full blur-[80px] pointer-events-none group-hover:bg-amber-500/30 group-hover:scale-110 transition-all duration-1000" />
-                  <div className="absolute -bottom-32 -right-32 w-80 h-80 bg-orange-600/20 rounded-full blur-[80px] pointer-events-none group-hover:bg-orange-600/30 group-hover:scale-110 transition-all duration-1000" />
-                  
-                  <div className="bg-[#1a1918]/80 backdrop-blur-2xl rounded-[28px] p-6 sm:p-8 relative z-10 border border-white/5 shadow-inner">
-                    
-                    <div className="flex items-center gap-5 mb-7">
-                      <div className="relative">
-                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-[0_0_30px_rgba(245,158,11,0.3)] transform transition-transform group-hover:rotate-6">
-                          <svg className="w-7 h-7 drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                          </svg>
-                        </div>
-                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-ping opacity-75" />
-                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-[#1a1918]" />
+                <motion.div variants={fadeUp} className="bg-amber-50/70 border border-amber-200/50 rounded-[20px] p-5 sm:p-6 mb-6 shadow-sm">
+                    <div className="flex items-center gap-4 mb-5">
+                      <div className="w-11 h-11 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
                       </div>
                       <div>
-                        <h3 className="text-[22px] font-extrabold text-white tracking-tight">Requires Attention</h3>
-                        <p className="text-[13px] font-bold text-amber-500/90 uppercase tracking-widest mt-1 flex items-center gap-2">
-                          {pendingExpenses.length} pending split{pendingExpenses.length !== 1 ? 's' : ''}
+                        <h3 className="text-[18px] font-bold text-gray-900 tracking-tight">Pending Confirmations</h3>
+                        <p className="text-[12px] font-bold text-amber-600/80 uppercase tracking-wider mt-0.5">
+                          {pendingExpenses.length} ITEM{pendingExpenses.length !== 1 ? 'S' : ''} AWAITING REVIEW
                         </p>
                       </div>
                     </div>
                     
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {pendingExpenses.map((exp, idx) => (
                         <motion.div 
                           key={exp.id} 
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: idx * 0.1 }}
-                          className="group/item bg-[#232220]/60 hover:bg-[#2A2926] transition-all duration-300 rounded-[20px] p-5 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-5 relative overflow-hidden"
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: idx * 0.05 }}
+                          className="bg-white rounded-[16px] p-4 sm:p-5 shadow-sm border border-amber-100/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-shadow hover:shadow-md"
                         >
-                          {/* Hover highlight line */}
-                          <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-gradient-to-b from-amber-400 to-orange-500 opacity-0 group-hover/item:opacity-100 transition-opacity duration-300" />
-                          
-                          <div className="flex-1 pl-2">
-                            <div className="flex items-center gap-3 mb-2">
-                              <span className="px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-400 text-[10px] font-black uppercase tracking-widest border border-amber-500/20">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <span className="px-2 py-0.5 rounded-[4px] bg-amber-50 text-amber-600 text-[10px] font-bold uppercase tracking-wider">
                                 Action Needed
                               </span>
-                              <p className="text-[12px] font-medium text-gray-400">
-                                {new Date(exp.expense_date).toLocaleDateString("en-US", { month: "long", day: "numeric" })}
-                              </p>
+                              <span className="text-[12px] font-medium text-gray-400">
+                                {new Date(exp.expense_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                              </span>
                             </div>
-                            <p className="text-[17px] font-bold text-white tracking-tight mb-1">{exp.description}</p>
-                            <p className="text-[13px] font-medium text-gray-500">
-                              Total Group Bill <span className="text-gray-300 ml-1">₹{formatMoney((exp.group_bill_details?.total_amount) || 0)}</span>
+                            <p className="text-[16px] font-bold text-gray-900">{exp.description}</p>
+                            <p className="text-[13px] font-medium text-gray-500 mt-0.5">
+                              From Group Bill • ₹{formatMoney((exp.group_bill_details?.total_amount) || 0)} total
                             </p>
                           </div>
                           
-                          <div className="flex items-center gap-6 justify-between sm:justify-end w-full sm:w-auto mt-2 sm:mt-0 pt-4 sm:pt-0 border-t sm:border-t-0 border-white/5">
+                          <div className="flex items-center gap-5 justify-between sm:justify-end w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-gray-100">
                             <div className="text-left sm:text-right">
-                              <p className="text-[12px] font-medium text-gray-500 mb-0.5">Your Share</p>
-                              <span className="text-[24px] font-extrabold text-white tabular-nums tracking-tighter">
+                              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Your Share</p>
+                              <span className="text-[20px] font-extrabold text-gray-900 tabular-nums">
                                 ₹{formatMoney(exp.amount)}
                               </span>
                             </div>
                             <button onClick={() => setSelectedPendingExpense(exp)}
-                              className="relative overflow-hidden px-6 py-3 bg-gradient-to-r from-amber-500 hover:from-amber-400 to-orange-600 hover:to-orange-500 text-white text-[15px] font-bold rounded-[14px] shadow-[0_8px_16px_-4px_rgba(245,158,11,0.4)] transition-all active:scale-[0.96] group/btn flex items-center justify-center min-w-[120px]">
-                              <span className="relative z-10 flex items-center gap-2 drop-shadow-sm">
-                                Review
-                                <svg className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                                </svg>
-                              </span>
-                              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" />
+                              className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-[14px] font-bold rounded-xl transition-colors active:scale-95 shadow-sm flex items-center justify-center">
+                              Review
                             </button>
                           </div>
                         </motion.div>
                       ))}
                     </div>
-                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
