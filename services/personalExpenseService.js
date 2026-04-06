@@ -89,11 +89,53 @@ export async function getPersonalExpenses({ month, category, limit: rowLimit = 2
   }
 }
 
+export async function getPendingExpenses() {
+  try {
+    const { data: { user }, error: authErr } = await supabase.auth.getUser();
+    if (authErr || !user) return { success: false, error: "Not authenticated" };
+
+    const { data, error } = await supabase
+      .from("personal_expenses")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("is_pending", true)
+      .order("created_at", { ascending: false });
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data: data || [] };
+  } catch (err) {
+    return { success: false, error: err?.message || String(err) };
+  }
+}
+
 export async function deletePersonalExpense(id) {
   try {
     const { error } = await supabase.from("personal_expenses").delete().eq("id", id);
     if (error) return { success: false, error: error.message };
     return { success: true };
+  } catch (err) {
+    return { success: false, error: err?.message || String(err) };
+  }
+}
+
+export async function confirmPersonalExpense(id, { amount, category, description }) {
+  try {
+    const updates = {
+      is_pending: false,
+      amount: Number(Number(amount).toFixed(2)),
+      description: description.trim(),
+      category: category || "other"
+    };
+
+    const { data, error } = await supabase
+      .from("personal_expenses")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data };
   } catch (err) {
     return { success: false, error: err?.message || String(err) };
   }
@@ -116,6 +158,7 @@ export async function getMonthlyStats(monthYear) {
       .from("personal_expenses")
       .select("*")
       .eq("user_id", user.id)
+      .eq("is_pending", false)
       .gte("expense_date", startDate)
       .lte("expense_date", endDate)
       .order("expense_date", { ascending: true });

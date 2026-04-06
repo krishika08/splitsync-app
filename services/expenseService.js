@@ -366,6 +366,37 @@ export async function createExpenseAndUpdate({
       return settlementsRes;
     }
 
+    // 4.5 Insert auto-pending personal expenses for all members in the split
+    if (description !== "Settle Up" && expenseRes.data.expense && expenseRes.data.splits) {
+      try {
+        const expenseData = expenseRes.data.expense;
+        const groupBillDetails = {
+           description: expenseData.description,
+           total_amount: expenseData.amount,
+           paid_by: paidBy
+        };
+        
+        const personalExpensesToInsert = expenseRes.data.splits.map(split => ({
+           user_id: split.user_id,
+           amount: split.amount, // Their exact share
+           description: expenseData.description,
+           category: 'other', // Default category
+           expense_date: new Date().toISOString().split('T')[0],
+           is_pending: true,
+           group_expense_id: expenseData.id,
+           group_id: groupId,
+           group_bill_details: groupBillDetails
+        }));
+
+        if (personalExpensesToInsert.length > 0) {
+           const { error: pendingErr } = await supabase.from("personal_expenses").insert(personalExpensesToInsert);
+           if (pendingErr) console.error("[createExpenseAndUpdate] Insert error details:", pendingErr);
+        }
+      } catch (err) {
+        console.error("[createExpenseAndUpdate] Failed to create pending personal expenses:", err);
+      }
+    }
+
     // 5. Send notifications to group members (fire-and-forget)
     try {
       const { data: actorProfile } = await supabase

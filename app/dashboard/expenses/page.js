@@ -12,6 +12,8 @@ import {
   getPreviousMonthComparison,
   CATEGORIES,
   getCategoryById,
+  getPendingExpenses,
+  confirmPersonalExpense
 } from "@/services/personalExpenseService";
 import { getBudget, setBudget } from "@/services/budgetService";
 import NotificationBell from "@/components/NotificationBell";
@@ -50,10 +52,12 @@ function PersonalExpensesContent() {
   const [stats, setStats] = useState(null);
   const [budget, setBudgetData] = useState(null);
   const [prevStats, setPrevStats] = useState(null);
+  const [pendingExpenses, setPendingExpenses] = useState([]);
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBudgetModal, setShowBudgetModal] = useState(false);
+  const [selectedPendingExpense, setSelectedPendingExpense] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState("all");
 
   const searchParams = useSearchParams();
@@ -81,14 +85,16 @@ function PersonalExpensesContent() {
 
   const loadData = useCallback(async (month) => {
     setLoading(true);
-    const [statsRes, budgetRes, prevRes] = await Promise.all([
+    const [statsRes, budgetRes, prevRes, pendingRes] = await Promise.all([
       getMonthlyStats(month),
       getBudget(month),
       getPreviousMonthComparison(month),
+      getPendingExpenses()
     ]);
     if (statsRes.success) setStats(statsRes.data);
     if (budgetRes.success) setBudgetData(budgetRes.data);
     if (prevRes.success) setPrevStats(prevRes.data);
+    if (pendingRes.success) setPendingExpenses(pendingRes.data);
     setLoading(false);
   }, []);
 
@@ -110,6 +116,12 @@ function PersonalExpensesContent() {
 
   const handleDelete = async (id) => {
     await deletePersonalExpense(id);
+    loadData(selectedMonth);
+  };
+
+  const handleConfirmPending = async (id, data) => {
+    await confirmPersonalExpense(id, data);
+    setSelectedPendingExpense(null);
     loadData(selectedMonth);
   };
 
@@ -220,6 +232,49 @@ function PersonalExpensesContent() {
           </div>
         ) : (
           <>
+            {/* ─── PENDING EXPENSES ALERT ─── */}
+            <AnimatePresence>
+              {pendingExpenses.length > 0 && (
+                <motion.div variants={fadeUp} className="bg-amber-50 rounded-[20px] p-6 sm:p-8 border border-amber-200/60 shadow-sm relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/10 rounded-full blur-2xl -mt-10 -mr-10 pointer-events-none" />
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-3 mb-5">
+                      <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                      </div>
+                      <div>
+                        <h3 className="text-[18px] font-extrabold text-amber-900 tracking-tight">Pending Confirmations</h3>
+                        <p className="text-[13px] font-bold text-amber-700/70 uppercase tracking-widest">{pendingExpenses.length} ITEMS AWAITING REVIEW</p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {pendingExpenses.map(exp => (
+                        <div key={exp.id} className="bg-white rounded-xl p-4 shadow-sm border border-amber-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div>
+                            <p className="text-[15px] font-bold text-gray-900">{exp.description}</p>
+                            <p className="text-[13px] font-medium text-gray-500 mt-1">
+                              From Group Bill • ₹{formatMoney((exp.group_bill_details?.total_amount) || 0)} total
+                            </p>
+                            <p className="text-[12px] font-bold text-amber-600 mt-1">
+                              Added on {new Date(exp.expense_date).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-4 justify-between sm:justify-end">
+                            <span className="text-[18px] font-extrabold text-gray-900">Your share: ₹{formatMoney(exp.amount)}</span>
+                            <button onClick={() => setSelectedPendingExpense(exp)}
+                              className="px-4 py-2 bg-amber-500 text-white text-[13px] font-bold rounded-lg hover:bg-amber-600 transition-colors shadow-sm active:scale-95">
+                              Review
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* ─── BUDGET OVERVIEW CARD ─── */}
             {budgetTotal > 0 && (
               <motion.div variants={fadeUp}
@@ -416,6 +471,9 @@ function PersonalExpensesContent() {
 
       {/* ─── BUDGET MODAL ─── */}
       <AnimatePresence>{showBudgetModal && <BudgetModal month={selectedMonth} existingBudget={budget} onClose={() => setShowBudgetModal(false)} onSaved={handleBudgetSaved} />}</AnimatePresence>
+
+      {/* ─── CONFIRM PENDING MODAL ─── */}
+      <AnimatePresence>{selectedPendingExpense && <ConfirmExpenseModal expense={selectedPendingExpense} onClose={() => setSelectedPendingExpense(null)} onConfirm={(data) => handleConfirmPending(selectedPendingExpense.id, data)} />}</AnimatePresence>
     </motion.div>
   );
 }
@@ -822,6 +880,109 @@ function BudgetModal({ month, existingBudget, onClose, onSaved }) {
         </motion.div>
       </div>
       <BottomSheet isOpen={true} onClose={onClose} title="Set Budget">
+        {ModalContent}
+      </BottomSheet>
+    </>
+  );
+}
+
+// ─── Confirm Expense Modal ──────────────────────────────────────────
+function ConfirmExpenseModal({ expense, onClose, onConfirm }) {
+  const [amount, setAmount] = useState(expense.amount ? String(expense.amount) : "");
+  const [description, setDescription] = useState(expense.description || "");
+  const [category, setCategory] = useState(expense.category || "other");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleConfirm = () => {
+    if (!amount || Number(amount) <= 0) { setError("Enter a valid amount"); return; }
+    if (!description.trim()) { setError("Enter a description"); return; }
+    setSaving(true);
+    onConfirm({ amount, description, category });
+  };
+
+  const billDetails = expense.group_bill_details || {};
+
+  const ModalContent = (
+    <>
+      <div className="p-6 sm:p-7 space-y-6">
+        {/* Bill Context */}
+        <div className="bg-amber-50/50 rounded-[14px] p-4 border border-amber-100/50">
+          <h4 className="text-[11px] font-black uppercase tracking-widest text-amber-600 mb-2">Original Group Bill</h4>
+          <div className="flex justify-between items-center text-[14px]">
+            <span className="font-bold text-gray-700">{billDetails.description || "Group Expense"}</span>
+            <span className="font-extrabold text-gray-900">₹{formatMoney(billDetails.total_amount || 0)}</span>
+          </div>
+          <div className="text-[12px] font-medium text-gray-500 mt-1">
+            Added on {new Date(expense.expense_date).toLocaleDateString()}
+          </div>
+        </div>
+
+        {/* Amount */}
+        <div>
+          <label className="text-[12px] font-black uppercase tracking-widest text-gray-400 mb-2 block">Your Share</label>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[18px] font-bold text-gray-300">₹</span>
+            <input type="number" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)}
+              className="w-full pl-10 pr-4 py-3.5 text-[20px] font-bold text-gray-900 bg-gray-50/50 rounded-[14px] border border-gray-200/80 focus:bg-white focus:border-[#111111] focus:ring-[3px] focus:ring-[#111111]/10 outline-none transition-all" />
+          </div>
+          <p className="text-[11px] font-medium text-gray-400 mt-1.5 ml-1">You can edit the logged amount if needed.</p>
+        </div>
+
+        {/* Description */}
+        <div>
+          <label className="text-[12px] font-black uppercase tracking-widest text-gray-400 mb-2 block">Description</label>
+          <input type="text" value={description} onChange={e => setDescription(e.target.value)}
+            className="w-full px-4 py-3.5 text-[15px] font-medium text-gray-900 bg-gray-50/50 rounded-[14px] border border-gray-200/80 focus:bg-white focus:border-[#111111] focus:ring-[3px] focus:ring-[#111111]/10 outline-none transition-all" />
+        </div>
+
+        {/* Category */}
+        <div>
+          <label className="text-[12px] font-black uppercase tracking-widest text-gray-400 mb-2 block">Category</label>
+          <div className="grid grid-cols-4 gap-2">
+            {CATEGORIES.map(cat => (
+              <button key={cat.id} onClick={() => setCategory(cat.id)}
+                className={`flex flex-col items-center gap-1 p-2 sm:p-2.5 rounded-xl text-center transition-all ${category === cat.id
+                  ? "bg-[#111111] text-white shadow-md"
+                  : "bg-gray-50 text-gray-600 border border-gray-100 hover:bg-gray-100"
+                }`}>
+                <span className="text-[16px] sm:text-[18px]">{cat.icon}</span>
+                <span className="text-[9px] font-bold truncate w-full">{cat.label.split(" ")[0]}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {error && <p className="text-[14px] font-medium text-red-500">{error}</p>}
+      </div>
+
+      <div className="p-6 sm:p-7 pt-2 flex gap-3">
+        <button onClick={onClose} disabled={saving}
+          className="w-full py-3.5 bg-gray-50 text-[15px] font-bold text-gray-700 rounded-[14px] hover:bg-gray-100 transition-all active:scale-[0.98]">Cancel</button>
+        <button onClick={handleConfirm} disabled={saving}
+          className="w-full py-3.5 bg-[#111111] text-[15px] font-bold text-white rounded-[14px] hover:bg-[#000] shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+          {saving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "Confirm Expense"}
+        </button>
+      </div>
+    </>
+  );
+
+  return (
+    <>
+      <div className="hidden sm:flex fixed inset-0 z-50 items-center justify-center bg-[#111111]/30 backdrop-blur-md p-4">
+        <motion.div initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.96, y: 12 }} transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full max-w-md bg-white/95 backdrop-blur-xl rounded-[24px] shadow-[0_40px_80px_-16px_rgba(0,0,0,0.25)] border border-white max-h-[90vh] overflow-y-auto">
+          <div className="p-7 pb-5 border-b border-gray-100/80 flex items-center justify-between">
+            <h2 className="text-[22px] font-semibold tracking-tight text-gray-900">Review Share</h2>
+            <button onClick={onClose} className="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition-colors">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+          {ModalContent}
+        </motion.div>
+      </div>
+      <BottomSheet isOpen={true} onClose={onClose} title="Review Share">
         {ModalContent}
       </BottomSheet>
     </>
