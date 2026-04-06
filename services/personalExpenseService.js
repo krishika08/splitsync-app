@@ -118,7 +118,7 @@ export async function deletePersonalExpense(id) {
   }
 }
 
-export async function confirmPersonalExpense(id, { amount, category, description }) {
+export async function confirmPersonalExpense(id, { amount, category, description, expenseDate }) {
   try {
     const updates = {
       is_pending: false,
@@ -126,6 +126,7 @@ export async function confirmPersonalExpense(id, { amount, category, description
       description: description.trim(),
       category: category || "other"
     };
+    if (expenseDate) updates.expense_date = expenseDate;
 
     const { data, error } = await supabase
       .from("personal_expenses")
@@ -206,7 +207,8 @@ export async function getMonthlyStats(monthYear) {
     const today = new Date();
     const isCurrentMonth = today.getFullYear() === y && (today.getMonth() + 1) === m;
     const currentDay = isCurrentMonth ? today.getDate() : lastDay;
-    const remainingDays = Math.max(1, lastDay - currentDay);
+    // +1 to include today in the remaining budget distribution
+    const remainingDays = Math.max(1, lastDay - currentDay + 1);
 
     return {
       success: true,

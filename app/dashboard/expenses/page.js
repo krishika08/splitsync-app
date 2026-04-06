@@ -128,24 +128,32 @@ function PersonalExpensesContent() {
   // Budget calculations
   const budgetTotal = budget?.total_limit || 0;
   const totalSpent = stats?.totalSpent || 0;
-  const remaining = budgetTotal - totalSpent;
+  const remaining = Math.max(0, budgetTotal - totalSpent);
   const percentUsed = budgetTotal > 0 ? Math.min((totalSpent / budgetTotal) * 100, 100) : 0;
-  const dailyBudget = stats?.remainingDays > 0 && remaining > 0 ? remaining / stats.remainingDays : 0;
+  const safeDailySpend = stats?.remainingDays > 0 && remaining > 0 ? remaining / stats.remainingDays : 0;
 
   // Predictive overspend
-  const predictedOverspend = useMemo(() => {
-    if (!stats || !budget || stats.dailyAverage <= 0) return null;
-    const projectedTotal = stats.dailyAverage * stats.daysInMonth;
-    if (projectedTotal > budgetTotal) {
-      const overspend = projectedTotal - budgetTotal;
-      // Estimate which day exceeds
-      const dayExceeds = Math.ceil(budgetTotal / stats.dailyAverage);
-      const [y, m] = selectedMonth.split("-").map(Number);
-      const exceedDate = new Date(y, m - 1, dayExceeds);
-      return { amount: overspend, date: exceedDate };
+  const overspendAlert = useMemo(() => {
+    if (!stats || !budget) return null;
+    if (totalSpent > budgetTotal) {
+      return { type: "exceeded", amount: totalSpent - budgetTotal };
+    }
+    if (stats.dailyAverage > 0) {
+      const projectedTotal = stats.dailyAverage * stats.daysInMonth;
+      if (projectedTotal > budgetTotal) {
+        const overspend = projectedTotal - budgetTotal;
+        const dayExceeds = Math.floor(budgetTotal / stats.dailyAverage);
+        const [y, m] = selectedMonth.split("-").map(Number);
+        
+        // Ensure dayExceeds doesn't go back in time
+        const actualDayExceeds = Math.max(stats.currentDay + 1, Math.min(stats.daysInMonth, dayExceeds));
+        const exceedDate = new Date(y, m - 1, actualDayExceeds);
+        
+        return { type: "projected", amount: overspend, date: exceedDate };
+      }
     }
     return null;
-  }, [stats, budget, budgetTotal, selectedMonth]);
+  }, [stats, budget, budgetTotal, selectedMonth, totalSpent]);
 
   // Previous month comparison
   const monthComparison = useMemo(() => {
@@ -321,11 +329,11 @@ function PersonalExpensesContent() {
                 <div className="relative z-10">
                   <div className="flex items-start justify-between mb-6">
                     <div>
-                      <p className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-1">Monthly Budget</p>
+                      <p className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-1">Left to Spend</p>
                       <p className="text-[36px] sm:text-[42px] font-extrabold tracking-tighter leading-none">
                         ₹{formatMoney(remaining)}
                       </p>
-                      <p className="text-[14px] font-medium text-gray-400 mt-1">remaining of ₹{formatMoney(budgetTotal)}</p>
+                      <p className="text-[14px] font-medium text-gray-400 mt-1">out of ₹{formatMoney(budgetTotal)} Monthly Budget</p>
                     </div>
                     <div className="text-right">
                       <p className={`text-[28px] font-extrabold tracking-tighter ${percentUsed > 90 ? "text-red-400" : percentUsed > 70 ? "text-amber-400" : "text-emerald-400"}`}>
@@ -350,10 +358,10 @@ function PersonalExpensesContent() {
                       <span className="text-gray-500 font-bold">Spent</span>
                       <span className="ml-2 font-extrabold text-white">₹{formatMoney(totalSpent)}</span>
                     </div>
-                    {stats?.isCurrentMonth && dailyBudget > 0 && (
+                    {stats?.isCurrentMonth && safeDailySpend > 0 && (
                       <div>
-                        <span className="text-gray-500 font-bold">Daily Budget</span>
-                        <span className="ml-2 font-extrabold text-emerald-400">₹{formatMoney(dailyBudget)}/day</span>
+                        <span className="text-gray-500 font-bold">Safe to Spend</span>
+                        <span className="ml-2 font-extrabold text-emerald-400">₹{formatMoney(safeDailySpend)}/day</span>
                       </div>
                     )}
                     <div>
@@ -363,15 +371,18 @@ function PersonalExpensesContent() {
                   </div>
 
                   {/* Predictive alert */}
-                  {predictedOverspend && (
+                  {overspendAlert && (
                     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
                       className="mt-5 bg-red-500/15 border border-red-500/20 rounded-xl px-4 py-3 flex items-start gap-3">
                       <svg className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
                       </svg>
                       <p className="text-[13px] font-bold text-red-300">
-                        At this rate, you&apos;ll exceed your budget by <span className="text-red-200">₹{formatMoney(predictedOverspend.amount)}</span> around{" "}
-                        {predictedOverspend.date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}.
+                        {overspendAlert.type === "exceeded" ? (
+                          <>You have exceeded your overall budget by <span className="text-red-200">₹{formatMoney(overspendAlert.amount)}</span>!</>
+                        ) : (
+                          <>At this rate, you&apos;ll exceed your budget by <span className="text-red-200">₹{formatMoney(overspendAlert.amount)}</span> around{" "}{overspendAlert.date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}.</>
+                        )}
                       </p>
                     </motion.div>
                   )}
@@ -929,14 +940,20 @@ function ConfirmExpenseModal({ expense, onClose, onConfirm }) {
   const [amount, setAmount] = useState(expense.amount ? String(expense.amount) : "");
   const [description, setDescription] = useState(expense.description || "");
   const [category, setCategory] = useState(expense.category || "other");
+  const [expenseDate, setExpenseDate] = useState(
+    expense.expense_date 
+      ? new Date(expense.expense_date).toISOString().split('T')[0] 
+      : new Date().toISOString().split('T')[0]
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const handleConfirm = () => {
     if (!amount || Number(amount) <= 0) { setError("Enter a valid amount"); return; }
     if (!description.trim()) { setError("Enter a description"); return; }
+    if (!expenseDate) { setError("Enter a valid date"); return; }
     setSaving(true);
-    onConfirm({ amount, description, category });
+    onConfirm({ amount, description, category, expenseDate });
   };
 
   const billDetails = expense.group_bill_details || {};
@@ -967,11 +984,18 @@ function ConfirmExpenseModal({ expense, onClose, onConfirm }) {
           <p className="text-[11px] font-medium text-gray-400 mt-1.5 ml-1">You can edit the logged amount if needed.</p>
         </div>
 
-        {/* Description */}
-        <div>
-          <label className="text-[12px] font-black uppercase tracking-widest text-gray-400 mb-2 block">Description</label>
-          <input type="text" value={description} onChange={e => setDescription(e.target.value)}
-            className="w-full px-4 py-3.5 text-[15px] font-medium text-gray-900 bg-gray-50/50 rounded-[14px] border border-gray-200/80 focus:bg-white focus:border-[#111111] focus:ring-[3px] focus:ring-[#111111]/10 outline-none transition-all" />
+        {/* Description & Date Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="text-[12px] font-black uppercase tracking-widest text-gray-400 mb-2 block">Description</label>
+            <input type="text" value={description} onChange={e => setDescription(e.target.value)}
+              className="w-full px-4 py-3.5 text-[15px] font-medium text-gray-900 bg-gray-50/50 rounded-[14px] border border-gray-200/80 focus:bg-white focus:border-[#111111] focus:ring-[3px] focus:ring-[#111111]/10 outline-none transition-all" />
+          </div>
+          <div>
+            <label className="text-[12px] font-black uppercase tracking-widest text-gray-400 mb-2 block">Date</label>
+            <input type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)}
+              className="w-full px-4 py-3.5 text-[15px] font-medium text-gray-900 bg-gray-50/50 rounded-[14px] border border-gray-200/80 focus:bg-white focus:border-[#111111] focus:ring-[3px] focus:ring-[#111111]/10 outline-none transition-all" />
+          </div>
         </div>
 
         {/* Category */}
