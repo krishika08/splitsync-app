@@ -477,3 +477,88 @@ export async function getActivityFeed(groupId) {
     return { success: false, error: err?.message ?? String(err) };
   }
 }
+
+/**
+ * Delete a single expense from a group and recalculate all balances/settlements.
+ *
+ * Steps:
+ *  1. Delete all expense_splits linked to this expense
+ *  2. Delete any personal_expenses auto-created from this group expense
+ *  3. Delete the expense record itself
+ *  4. Recalculate balances for the group
+ *  5. Save the new simplified settlements
+ *
+ * @param {string} groupId  - The group this expense belongs to
+ * @param {string} expenseId - The expense ID to delete
+ * @returns {{ success: boolean, data?: object, error?: string }}
+ */
+export async function deleteExpenseAndRecalculate(groupId, expenseId) {
+  try {
+    if (!groupId) return { success: false, error: "Group ID is required" };
+    if (!expenseId) return { success: false, error: "Expense ID is required" };
+
+    // Auth check
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    // 1) Delete related expense_splits
+    const { error: splitsDeleteError } = await supabase
+      .from("expense_splits")
+      .delete()
+      .eq("expense_id", expenseId);
+
+    if (splitsDeleteError) {
+      console.error("[deleteExpense] Failed to delete splits:", splitsDeleteError);
+      return { success: false, error: splitsDeleteError.message };
+    }
+
+    // 2) Delete related personal_expenses (auto-generated pending entries)
+    const { error: personalDeleteError } = await supabase
+      .from("personal_expenses")
+      .delete()
+      .eq("group_expense_id", expenseId);
+
+    if (personalDeleteError) {
+      // Non-blocking: table/column might not exist in all setups
+      console.warn("[deleteExpense] Could not delete personal_expenses:", personalDeleteError.message);
+    }
+
+    // 3) Delete the expense record itself
+    const { error: expenseDeleteError } = await supabase
+      .from("expenses")
+      .delete()
+      .eq("id", expenseId);
+
+    if (expenseDeleteError) {
+      return { success: false, error: expenseDeleteError.message };
+    }
+
+    // 4) Recalculate balances for this group
+    const balancesRes = await calculateBalances(groupId);
+    if (!balancesRes.success) {
+      // Expense is deleted but balance recalc failed — still report partial success
+      return { success: true, data: { settlements: [] }, warning: balancesRes.error };
+    }
+
+    // 5) Save updated settlements
+    const transactions = balancesRes.data;
+    const settlementsRes = await saveSettlements(groupId, transactions);
+    if (!settlementsRes.success) {
+      return { success: true, data: { settlements: [] }, warning: settlementsRes.error };
+    }
+
+    return {
+      success: true,
+      data: {
+        settlements: settlementsRes.data,
+      },
+    };
+  } catch (err) {
+    return { success: false, error: err?.message ?? String(err) };
+  }
+}

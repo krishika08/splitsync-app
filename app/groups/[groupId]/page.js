@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getUserGroups, getGroupMembers, addMemberToGroup, deleteGroup } from "@/services/groupService";
 import { getCurrentUser } from "@/services/authService";
-import { getExpenses, calculateBalances } from "@/services/expenseService";
+import { getExpenses, calculateBalances, deleteExpenseAndRecalculate } from "@/services/expenseService";
 import { getSettlements, settleUp } from "@/services/settlementService";
 import PremiumAddExpenseModal from "@/components/PremiumAddExpenseModal";
 import PremiumBalancesScreen from "@/components/PremiumBalancesScreen";
@@ -354,10 +354,36 @@ export default function GroupDetailPage() {
                         isRecent={isRecent}
                         actor={actor}
                         isSettled={isSettled}
-                        onDelete={(id) => {
-                          console.log("Delete expense:", id);
-                          // In a full implementation, call delete service here and update state.
+                        onDelete={async (id) => {
+                          // Optimistically remove from UI
                           setExpenses(prev => prev.filter(e => e.id !== id));
+
+                          // Delete from DB and recalculate balances
+                          const res = await deleteExpenseAndRecalculate(groupId, id);
+                          if (!res.success) {
+                            console.error("Failed to delete expense:", res.error);
+                            // Revert: re-fetch the real state
+                            const eRes = await getExpenses(groupId);
+                            if (eRes.success && eRes.data) setExpenses(eRes.data);
+                            return;
+                          }
+
+                          // Refresh expenses list from DB (in case of sync issues)
+                          getExpenses(groupId).then(eRes => {
+                            if (eRes.success && eRes.data) setExpenses(eRes.data);
+                          });
+
+                          // Refresh balances
+                          calculateBalances(groupId).then(bRes => {
+                            if (bRes.success && bRes.data) setBalances(bRes.data);
+                          });
+
+                          // Refresh settlements ("who pays whom")
+                          setLoadingSettlements(true);
+                          getSettlements(groupId).then(sRes => {
+                            if (sRes.success && sRes.data) setSettlements(sRes.data);
+                            setLoadingSettlements(false);
+                          });
                         }}
                       />
                     </motion.div>
