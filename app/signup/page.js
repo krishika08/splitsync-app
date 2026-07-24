@@ -67,9 +67,11 @@ export default function SignupPage() {
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 to-slate-100 px-4 flex items-center justify-center font-sans">
       <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-md transition-all duration-300 hover:shadow-lg">
         <div className="flex flex-col items-center gap-4 mb-6">
-          <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[14px] bg-[#111111] text-white shadow-sm font-bold text-[14px] tracking-widest">
-            SS
-          </div>
+          <img 
+            src="/logo.png" 
+            alt="SplitSync Logo" 
+            className="w-[48px] h-[48px] object-contain rounded-[14px] shadow-sm"
+          />
           <h1 className="text-xl font-semibold text-gray-800">
             Create Account
           </h1>

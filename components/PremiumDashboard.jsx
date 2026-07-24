@@ -16,12 +16,11 @@ export default function PremiumDashboard({
       <nav className="sticky top-0 z-50 w-full border-b border-white/20 bg-white/60 backdrop-blur-2xl transition-all">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-slate-800 to-slate-900 text-white shadow-lg shadow-slate-900/20 ring-1 ring-white/10">
-              {/* App Icon */}
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="SplitSync Logo" 
+              className="w-10 h-10 object-contain rounded-xl shadow-md"
+            />
             <span className="text-xl font-bold tracking-tight text-slate-900 hidden sm:block">
               SplitSync
             </span>

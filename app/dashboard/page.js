@@ -247,9 +247,11 @@ export default function Dashboard() {
       <nav className="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-gray-200/60 shadow-[0_4px_30px_-10px_rgba(0,0,0,0.02)] transition-all duration-300 ease-out">
         <div className="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-[32px] w-[32px] items-center justify-center rounded-[10px] bg-[#111111] text-white shadow-[0_2px_12px_-4px_rgba(0,0,0,0.5)] font-bold text-[12px] tracking-widest">
-              SS
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="SplitSync Logo" 
+              className="w-[32px] h-[32px] object-contain rounded-[10px] shadow-sm"
+            />
             <span className="text-[18px] font-semibold tracking-tight text-[#111111] hidden sm:block">
               SplitSync
             </span>

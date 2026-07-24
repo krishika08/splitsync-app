@@ -36,9 +36,11 @@ export default function LoginPage() {
         className="w-full max-w-[400px] bg-white rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-8 sm:p-10"
       >
         <div className="flex flex-col items-center mb-10 gap-5">
-          <div className="flex h-[52px] w-[52px] items-center justify-center rounded-[16px] bg-[#1D1D1F] text-white shadow-sm font-semibold tracking-wider text-[16px]">
-            SS
-          </div>
+          <img 
+            src="/logo.png" 
+            alt="SplitSync Logo" 
+            className="w-[52px] h-[52px] object-contain rounded-[16px] shadow-sm"
+          />
           <div className="text-center space-y-2">
             <h1 className="text-[28px] font-semibold tracking-tight text-[#1D1D1F]">
               Welcome back

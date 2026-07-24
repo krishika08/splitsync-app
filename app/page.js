@@ -24,9 +24,11 @@ export default function LandingPage() {
       <nav className="absolute top-0 w-full z-50">
         <div className="max-w-7xl mx-auto px-6 py-8 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-black rounded-xl flex items-center justify-center shadow-md">
-              <span className="text-white font-bold text-[14px]">S</span>
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="SplitSync Logo" 
+              className="w-8 h-8 object-contain rounded-lg shadow-sm"
+            />
             <span className="text-[18px] font-bold tracking-tight">SplitSync</span>
           </div>
           <Link href="/login" className="text-[15px] font-medium text-gray-500 hover:text-gray-900 transition-colors">
