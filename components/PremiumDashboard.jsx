@@ -15,13 +15,13 @@ export default function PremiumDashboard({
       {/* --- Floating Navbar (Glassmorphism) --- */}
       <nav className="sticky top-0 z-50 w-full border-b border-white/20 bg-white/60 backdrop-blur-2xl transition-all">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <img 
               src="/logo.png" 
               alt="SplitSync Logo" 
               className="w-10 h-10 object-contain rounded-xl shadow-md"
             />
-            <span className="text-xl font-bold tracking-tight text-slate-900 hidden sm:block">
+            <span className="text-[22px] font-extrabold tracking-tight bg-gradient-to-r from-blue-600 via-indigo-500 to-teal-500 bg-clip-text text-transparent">
               SplitSync
             </span>
           </div>

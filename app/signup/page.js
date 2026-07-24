@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 import { signup } from "@/services/authService";
+import { User, Mail, Lock, ShieldCheck, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState("");
@@ -14,7 +16,20 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const router = useRouter();
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      const x = (e.clientX - window.innerWidth / 2) / 40;
+      const y = (e.clientY - window.innerHeight / 2) / 40;
+      setMousePosition({ x, y });
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
 
   const usernameClean = username.trim().toLowerCase();
   const isUsernameValid = /^[a-z0-9_]{3,20}$/.test(usernameClean);
@@ -64,163 +79,258 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 to-slate-100 px-4 flex items-center justify-center font-sans">
-      <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-md transition-all duration-300 hover:shadow-lg">
-        <div className="flex flex-col items-center gap-4 mb-6">
+    <div 
+      className="min-h-screen w-full bg-white flex items-center justify-center p-6 font-sans text-slate-800 selection:bg-blue-100 selection:text-blue-900 relative overflow-hidden"
+      style={{ 
+        backgroundImage: "radial-gradient(#f1f5f9 1.2px, transparent 1.2px)", 
+        backgroundSize: "24px 24px" 
+      }}
+    >
+      
+      {/* BACKGROUND FLOATING EFFECTS */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
+        <motion.div 
+          animate={{ 
+            x: [0, 15, 0, -15, 0], 
+            y: [0, -20, 0, 20, 0] 
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+          style={{ x: mousePosition.x * 0.2, y: mousePosition.y * 0.2 }}
+          className="absolute -top-[10%] -left-[10%] w-[350px] h-[350px] bg-blue-100/30 rounded-full blur-[100px]"
+        />
+        <motion.div 
+          animate={{ 
+            x: [0, -20, 0, 20, 0], 
+            y: [0, 20, 0, -20, 0] 
+          }}
+          transition={{ duration: 24, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          style={{ x: mousePosition.x * -0.2, y: mousePosition.y * -0.2 }}
+          className="absolute -bottom-[10%] -right-[10%] w-[400px] h-[400px] bg-teal-100/30 rounded-full blur-[120px]"
+        />
+        
+        {/* Soft glow behind card */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-gradient-to-tr from-blue-300/5 to-teal-300/5 rounded-full blur-[80px]" />
+        
+        {/* Thin abstract curves */}
+        <svg className="absolute inset-0 w-full h-full opacity-[0.2]" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M-100 300 C 200 450, 500 150, 1200 300" stroke="#94a3b8" strokeWidth="1" strokeDasharray="5 5" />
+        </svg>
+      </div>
+
+      {/* AUTH CARD */}
+      <motion.div 
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-[400px] bg-white rounded-[24px] border border-slate-200/80 shadow-[0_15px_40px_rgba(0,0,0,0.03)] p-6 sm:p-10 my-8 z-10 flex flex-col"
+      >
+        {/* TOP SECTION */}
+        <div className="flex flex-col items-center mb-7 text-center">
           <img 
             src="/logo.png" 
             alt="SplitSync Logo" 
-            className="w-[48px] h-[48px] object-contain rounded-[14px] shadow-sm"
+            className="w-10 h-10 object-contain rounded-lg shadow-sm mb-4 transition-transform duration-300 hover:scale-105"
           />
-          <h1 className="text-xl font-semibold text-gray-800">
-            Create Account
+          <h1 className="text-[26px] sm:text-[30px] font-bold tracking-tighter text-slate-900 leading-tight">
+            Create your account
           </h1>
+          <p className="text-[14px] sm:text-[15px] font-medium text-slate-400 mt-1.5">
+            Start splitting expenses with friends in seconds.
+          </p>
         </div>
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
+        {/* FORM */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Full Name field */}
           <div className="space-y-1.5">
-            <label
-              htmlFor="name"
-              className="text-sm font-medium text-slate-700"
-            >
+            <label htmlFor="name" className="text-[13px] font-semibold text-slate-700 select-none ml-0.5">
               Full Name
             </label>
-            <input
-              id="name"
-              name="name"
-              type="text"
-              autoComplete="name"
-              placeholder="John Doe"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 hover:border-slate-300"
-            />
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <User className="w-4.5 h-4.5" strokeWidth={2} />
+              </span>
+              <input
+                id="name"
+                type="text"
+                placeholder="John Doe"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="w-full h-[50px] rounded-xl border border-slate-200 bg-slate-50/30 pl-11 pr-4 text-[15px] text-slate-800 placeholder:text-slate-400 outline-none transition-all duration-200 focus:bg-white focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 hover:border-slate-300"
+              />
+            </div>
           </div>
 
+          {/* Username field */}
           <div className="space-y-1.5">
-            <label
-              htmlFor="username"
-              className="text-sm font-medium text-slate-700"
-            >
+            <label htmlFor="username" className="text-[13px] font-semibold text-slate-700 select-none ml-0.5">
               Username
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400 font-medium select-none">@</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[15px] font-bold text-slate-400 pointer-events-none select-none">
+                @
+              </span>
               <input
                 id="username"
-                name="username"
                 type="text"
-                autoComplete="username"
+                required
                 placeholder="johndoe"
                 value={username}
                 onChange={(e) => setUsername(e.target.value.replace(/\s/g, ''))}
-                className={`w-full rounded-xl border bg-white pl-8 pr-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm outline-none transition-all duration-200 hover:border-slate-300 ${
+                className={`w-full h-[50px] rounded-xl border bg-slate-50/30 pl-11 pr-11 text-[15px] text-slate-800 placeholder:text-slate-400 outline-none transition-all duration-200 focus:bg-white hover:border-slate-300 ${
                   username && !isUsernameValid 
-                    ? 'border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-500/20' 
+                    ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/15' 
                     : username && isUsernameValid 
-                    ? 'border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20' 
-                    : 'border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20'
+                    ? 'border-emerald-300 focus:border-emerald-500 focus:ring-emerald-500/15' 
+                    : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500/15'
                 }`}
               />
               {username && (
-                <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold ${isUsernameValid ? 'text-emerald-500' : 'text-red-400'}`}>
+                <span className={`absolute right-4 top-1/2 -translate-y-1/2 text-xs font-extrabold ${isUsernameValid ? 'text-emerald-500' : 'text-rose-400'}`}>
                   {isUsernameValid ? '✓' : `${usernameClean.length}/3`}
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-slate-400 font-medium ml-1">
+            <p className="text-[10.5px] text-slate-400 font-semibold ml-1">
               3-20 characters: letters, numbers, and underscores
             </p>
           </div>
 
+          {/* Email field */}
           <div className="space-y-1.5">
-            <label
-              htmlFor="email"
-              className="text-sm font-medium text-slate-700"
-            >
+            <label htmlFor="email" className="text-[13px] font-semibold text-slate-700 select-none ml-0.5">
               Email
             </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 hover:border-slate-300"
-            />
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <Mail className="w-4.5 h-4.5" strokeWidth={2} />
+              </span>
+              <input
+                id="email"
+                type="email"
+                required
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full h-[50px] rounded-xl border border-slate-200 bg-slate-50/30 pl-11 pr-4 text-[15px] text-slate-800 placeholder:text-slate-400 outline-none transition-all duration-200 focus:bg-white focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 hover:border-slate-300"
+              />
+            </div>
           </div>
 
+          {/* Password field */}
           <div className="space-y-1.5">
-            <label
-              htmlFor="password"
-              className="text-sm font-medium text-slate-700"
-            >
+            <label htmlFor="password" className="text-[13px] font-semibold text-slate-700 select-none ml-0.5">
               Password
             </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 hover:border-slate-300"
-            />
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <Lock className="w-4.5 h-4.5" strokeWidth={2} />
+              </span>
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                required
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full h-[50px] rounded-xl border border-slate-200 bg-slate-50/30 pl-11 pr-11 text-[15px] text-slate-800 placeholder:text-slate-400 outline-none transition-all duration-200 focus:bg-white focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 hover:border-slate-300"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="w-4.5 h-4.5" strokeWidth={2} /> : <Eye className="w-4.5 h-4.5" strokeWidth={2} />}
+              </button>
+            </div>
           </div>
 
+          {/* Confirm Password field */}
           <div className="space-y-1.5">
-            <label
-              htmlFor="confirmPassword"
-              className="text-sm font-medium text-slate-700"
-            >
+            <label htmlFor="confirmPassword" className="text-[13px] font-semibold text-slate-700 select-none ml-0.5">
               Confirm Password
             </label>
-            <input
-              id="confirmPassword"
-              name="confirmPassword"
-              type="password"
-              autoComplete="new-password"
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-            />
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <ShieldCheck className="w-4.5 h-4.5" strokeWidth={2} />
+              </span>
+              <input
+                id="confirmPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                required
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full h-[50px] rounded-xl border border-slate-200 bg-slate-50/30 pl-11 pr-11 text-[15px] text-slate-800 placeholder:text-slate-400 outline-none transition-all duration-200 focus:bg-white focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 hover:border-slate-300"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
+                aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+              >
+                {showConfirmPassword ? <EyeOff className="w-4.5 h-4.5" strokeWidth={2} /> : <Eye className="w-4.5 h-4.5" strokeWidth={2} />}
+              </button>
+            </div>
           </div>
 
-          {success && (
-            <p className="text-sm font-medium text-emerald-600 mt-2">
-              {success}
-            </p>
-          )}
+          {/* Success / Error Messages */}
+          <AnimatePresence mode="wait">
+            {success && (
+              <motion.p 
+                initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                animate={{ opacity: 1, height: 'auto', marginTop: 8 }}
+                exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                className="text-[12.5px] font-semibold text-emerald-600 text-center"
+              >
+                {success}
+              </motion.p>
+            )}
+            {error && (
+              <motion.p 
+                initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                animate={{ opacity: 1, height: 'auto', marginTop: 8 }}
+                exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                className="text-[12.5px] font-semibold text-rose-500 text-center"
+              >
+                {error}
+              </motion.p>
+            )}
+          </AnimatePresence>
 
-          {error && (
-            <p className="text-sm font-medium text-red-500 mt-2">
-              {error}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-indigo-700 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {loading ? "Signing up…" : "Sign Up"}
-          </button>
+          {/* Submit Button */}
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="group relative w-full h-[50px] flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-teal-500 hover:from-blue-700 hover:to-teal-600 text-white text-[15px] font-semibold shadow-[0_3px_12px_rgba(37,99,235,0.15)] hover:shadow-[0_5px_18px_rgba(37,99,235,0.25)] transition-all duration-250 ease-in-out hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer"
+            >
+              {loading ? (
+                <Loader2 className="w-4.5 h-4.5 animate-spin" strokeWidth={2.5} />
+              ) : (
+                <>
+                  Sign Up
+                  <ArrowRight className="w-4.5 h-4.5 group-hover:translate-x-1 transition-transform duration-250" strokeWidth={2.5} />
+                </>
+              )}
+            </button>
+          </div>
         </form>
 
-        <p className="mt-5 text-center text-sm text-slate-600">
-          Already have an account?{" "}
-          <Link
-            href="/login"
-            className="font-medium text-slate-900 underline-offset-4 hover:underline"
-          >
-            Login
-          </Link>
-        </p>
-      </div>
+        {/* BOTTOM NAVIGATION LINK */}
+        <div className="mt-7 pt-5 border-t border-slate-100 text-center">
+          <p className="text-[13.5px] text-slate-400 font-medium">
+            Already have an account?{" "}
+            <Link 
+              href="/login" 
+              className="text-blue-600 font-semibold hover:underline underline-offset-4 transition-colors"
+            >
+              Sign In
+            </Link>
+          </p>
+        </div>
+      </motion.div>
     </div>
   );
 }
