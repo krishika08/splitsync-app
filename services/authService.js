@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
-
+// changes done 
 export async function signup(email, password, username) {
   try {
     if (!username || username.trim().length < 3) {
