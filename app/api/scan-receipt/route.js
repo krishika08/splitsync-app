@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 export async function POST(request) {
-  console.log("--- SCANNING RECEIPT API CALLED (v1-latest) ---");
   try {
     const { image, mimeType = "image/jpeg" } = await request.json();
 
@@ -14,8 +13,9 @@ export async function POST(request) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey === "YOUR_GEMINI_API_KEY_HERE") {
+      console.error("Error: GEMINI_API_KEY is not configured in the environment.");
       return NextResponse.json(
-        { success: false, error: "Gemini API key not configured. Add GEMINI_API_KEY to .env.local" },
+        { success: false, error: "Receipt scanning service is not configured correctly." },
         { status: 500 }
       );
     }
@@ -77,21 +77,21 @@ Rules:
       const errorBody = await geminiResponse.text();
       console.error("Gemini API error detail:", geminiResponse.status, errorBody);
       return NextResponse.json(
-        { success: false, error: `Gemini API error ${geminiResponse.status}: ${errorBody.substring(0, 100)}` },
+        { success: false, error: "Failed to analyze receipt. Please try again." },
         { status: 502 }
       );
     }
 
     const geminiData = await geminiResponse.json();
-    console.log("Gemini API call successful");
 
     // Extract text from Gemini response
     const rawText =
       geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
     if (!rawText) {
+      console.error("Gemini API returned an empty response.");
       return NextResponse.json(
-        { success: false, error: "No response from Gemini" },
+        { success: false, error: "Failed to analyze receipt. Please try again." },
         { status: 502 }
       );
     }
@@ -148,7 +148,7 @@ Rules:
   } catch (err) {
     console.error("Receipt scan error:", err);
     return NextResponse.json(
-      { success: false, error: err?.message || "Internal server error" },
+      { success: false, error: "Internal server error" },
       { status: 500 }
     );
   }
