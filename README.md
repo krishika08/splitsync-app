@@ -1,265 +1,274 @@
+<div align="center">
+
 # SplitSync
 
-A full-stack group expense splitting application with AI-powered receipt scanning, real-time notifications, personal budgeting, and analytics — built on Next.js and Supabase.
+### Split expenses. Not friendships.
 
-## Overview
+A full-stack expense splitting app with AI receipt scanning, real-time notifications, and bank-grade row-level security — built on Next.js 16 and Supabase.
 
-SplitSync helps groups of people track shared expenses, calculate who owes whom, and settle debts with minimal friction. Whether it's a trip with friends, shared rent, or a dinner bill, SplitSync handles the math and keeps everyone on the same page.
+<br />
 
-**The problem:** Splitting expenses manually leads to forgotten payments, disputes, and spreadsheet fatigue. Existing solutions are often closed-source, ad-heavy, or lack transparency in how balances are calculated.
+![Next.js](https://img.shields.io/badge/Next.js_16-000000?style=for-the-badge&logo=next.js&logoColor=white)
+![React](https://img.shields.io/badge/React_19-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS_4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
+![Google Gemini](https://img.shields.io/badge/Gemini_AI-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white)
+
+</div>
+
+<br />
+
+---
+
+## 01 — Product Preview
+
+> Screenshots coming soon. The sections below are ready for real captures.
+
+| Dashboard | Group View | Receipt Scanner |
+|:-:|:-:|:-:|
+| _`dashboard.png`_ | _`group-view.png`_ | _`receipt-scanner.png`_ |
+
+| Analytics | Expenses | Notifications |
+|:-:|:-:|:-:|
+| _`analytics.png`_ | _`expenses.png`_ | _`notifications.png`_ |
+
+---
+
+## 02 — Key Capabilities
+
+|  | Capability | What it does |
+|---|---|---|
+| 🤖 | **AI Receipt Scanning** | Photograph a receipt — Gemini extracts merchant, items, tax, and total automatically |
+| ⚡ | **Smart Expense Splitting** | Equal, exact-amount, and percentage splits with cent-accurate rounding correction |
+| 🔄 | **Debt Simplification** | Greedy algorithm minimizes the number of settlement transactions across a group |
+| 🔔 | **Real-Time Notifications** | Instant in-app alerts via Supabase Realtime when expenses are added or settled |
+| 💰 | **Personal Budgets** | Monthly spending limits with category-level tracking, independent of group activity |
+| 📊 | **Financial Analytics** | Category breakdowns, monthly trends, group comparisons, and top-expense reports |
+| 🔒 | **Row-Level Security** | Every table enforces RLS — users can only access data they're authorized to see |
+| 📱 | **PWA Support** | Installable on mobile home screens with web app manifest and optimized touch UX |
+
+---
+
+## 03 — What is SplitSync?
+
+SplitSync helps groups of people track shared expenses, calculate who owes whom, and settle debts with minimal friction.
+
+**The problem:** Splitting expenses manually leads to forgotten payments, disputes, and spreadsheet fatigue.
 
 **Who it's for:** Roommates, travel groups, couples, and anyone who regularly shares costs.
 
 **What makes it different:**
-- AI receipt scanning extracts itemized data from photos using Google's Gemini API
-- Multiple split modes (equal, exact amounts, percentage-based) with cent-accurate rounding
-- A greedy debt-simplification algorithm that minimizes the number of transfers needed
-- Row-Level Security on every table — users can only access data they're authorized to see
-- Personal expense tracking with monthly budgets, independent of group activity
-- Real-time notification delivery via Supabase Realtime (Postgres changes)
-- PWA-ready with a web app manifest for mobile home screen installation
+- AI-powered receipt OCR via Google Gemini, running entirely server-side
+- Multiple split modes with penny-perfect accuracy (no rounding drift)
+- A greedy debt-simplification algorithm that minimizes transfer count
+- PostgreSQL Row-Level Security on every user-data table
+- Personal expense tracking with budgets, separate from group activity
+- Real-time notification delivery via Supabase Realtime
 
-## Features
+---
 
-| Feature | Description |
+## 04 — How It Works
+
+```
+ ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
+ │  Create   │────▶│   Add    │────▶│ Balances │────▶│ Settle   │
+ │  Group    │     │ Expenses │     │ Auto-Calc│     │   Up     │
+ └──────────┘     └──────────┘     └──────────┘     └──────────┘
+```
+
+**1. Create a group** and invite members by username.
+**2. Log expenses** — choose who paid, split equally or by custom amounts/percentages.
+**3. Balances recalculate** automatically. Debts are simplified to minimize transfers.
+**4. Settle up** with one tap — an offsetting payment is created and balances update.
+
+For personal tracking, log expenses independently with 13 categories and set monthly budgets.
+
+---
+
+## 05 — Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                       Client (Browser)                      │
+│                                                             │
+│   app/           React pages (Next.js App Router)           │
+│   components/    Reusable UI (modals, nav, sheets)          │
+│   services/      Data-access layer (Supabase queries)       │
+│   lib/           Client init, hooks, animation config       │
+└────────────┬──────────────────────────┬─────────────────────┘
+             │                          │
+             │  Supabase JS SDK         │  Server-side fetch
+             │                          │
+┌────────────▼────────────────┐    ┌────▼─────────────────────┐
+│      Supabase (BaaS)        │    │   Next.js API Routes     │
+│                             │    │                          │
+│   Auth     (email/password) │    │   POST /api/scan-receipt │
+│   PostgREST (CRUD API)     │    │         │                │
+│   Realtime  (notifications) │    │         ▼                │
+│   PostgreSQL (data store)   │    │   Google Gemini API      │
+│   RLS policies (per-table)  │    │   (receipt OCR)          │
+└─────────────────────────────┘    └──────────────────────────┘
+```
+
+**AI Receipt Flow:** Client sends base64 image → server-side API route forwards to Gemini with a structured prompt → Gemini returns JSON (merchant, items, tax, total) → API validates, sanitizes, and returns parsed data. The Gemini API key never reaches the browser.
+
+---
+
+## 06 — Engineering Highlights
+
+> These are the technical decisions that shaped the codebase.
+
+**Greedy Debt Simplification** — `simplifyDebts()` sorts creditors and debtors by magnitude and greedily matches them, producing the minimum number of settlement transactions.
+
+**Cent-Accurate Splitting** — Equal splits distribute remainder cents across the first _N_ members instead of rounding. Percentage splits patch the rounding difference onto the first user, preventing ledger drift.
+
+**Service-Layer Architecture** — All data access lives in `services/` with a consistent `{ success, data, error }` return contract. UI components never call Supabase directly.
+
+**PostgreSQL + RLS** — 8 user-data tables, each with Row-Level Security. Policies enforce group membership checks, ownership validation, and `paid_by` spoofing prevention.
+
+**Iterative RLS Hardening** — 22 migration files document multiple rounds of policy refinement to eliminate infinite-recursion issues with self-referencing checks on `group_members`.
+
+**Real-Time Notifications** — Subscribes to `INSERT` events on the `notifications` table via Supabase Realtime, delivering instant in-app updates without polling.
+
+**Server-Side Gemini Isolation** — The AI key is only referenced in `app/api/scan-receipt/route.js`. Client-facing error messages are sanitized to prevent leaking provider internals.
+
+**RLS Smoke Testing** — `scripts/rls-smoke-test.mjs` programmatically verifies that non-members cannot read groups, insert expenses, or spoof `paid_by` fields.
+
+**Auto-Pending Personal Expenses** — When a group expense is created, personal expense entries are automatically generated for each split participant, bridging group and personal tracking.
+
+---
+
+## 07 — Database & Security
+
+| Layer | Implementation |
 |---|---|
-| **Group Expenses** | Create groups, add members by username, and log shared expenses |
-| **Flexible Splitting** | Equal, exact-amount, and percentage-based splits with rounding correction |
-| **Balance Calculation** | Net balance computation across all expenses and splits per group |
-| **Debt Simplification** | Greedy algorithm minimizes the number of settlement transactions |
-| **Settle Up** | One-tap settlement that creates an offsetting expense and recalculates balances |
-| **Individual Tracking** | 1-to-1 expense groups for tracking debts between two people |
-| **AI Receipt Scanner** | Photograph a receipt; Gemini extracts merchant, items, tax, and total |
-| **Personal Expenses** | Track personal spending with 13 categories, independent of groups |
-| **Monthly Budgets** | Set and track monthly spending limits with category-level budgets |
-| **Analytics Dashboard** | Category breakdowns, monthly trends, group comparisons, and top expenses |
-| **Notifications** | Real-time in-app notifications for new expenses, settlements, and member joins |
-| **Activity Feed** | Chronological log of all expense and settlement activity per group |
-| **Authentication** | Email/password signup and login via Supabase Auth with profile management |
-| **PWA Support** | Web app manifest with icons for installable mobile experience |
+| **Database** | PostgreSQL via Supabase — 8 user-data tables, 22 migration files |
+| **Auth** | Supabase Auth (email/password) — users identified by UUID |
+| **Profiles** | `profiles` table stores usernames and emails, linked to `auth.users` |
+| **RLS** | Enabled on every table — `groups`, `group_members`, `expenses`, `expense_splits`, `settlements`, `profiles`, `notifications`, `personal_expenses`, `monthly_budgets` |
+| **Data isolation** | Users can only query groups they belong to; personal data is scoped to the owner |
+| **Secrets** | Loaded from `.env.local` (gitignored). Client throws immediately if required vars are missing |
 
-## Screenshots
+---
 
-> **Note:** Screenshots are not yet available. To add them, place images in a `docs/screenshots/` directory and reference them here.
+## 08 — Tech Stack
 
-```
-docs/
-  screenshots/
-    dashboard.png
-    group-view.png
-    receipt-scanner.png
-    analytics.png
-    expenses.png
-```
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                      Client (Browser)                   │
-│                                                         │
-│  app/          React pages (Next.js App Router)         │
-│  components/   Reusable UI components                   │
-│  services/     Data-access layer (Supabase queries)     │
-│  lib/          Supabase client, hooks, animation config │
-└──────────────┬──────────────────────┬───────────────────┘
-               │                      │
-               │ Supabase JS SDK      │ fetch (server-side)
-               │                      │
-┌──────────────▼──────────────┐  ┌────▼───────────────────┐
-│     Supabase (BaaS)         │  │  Next.js API Routes    │
-│                             │  │                        │
-│  Auth    (email/password)   │  │  /api/scan-receipt     │
-│  PostgREST  (CRUD API)     │  │    ↓                   │
-│  Realtime   (notifications) │  │  Google Gemini API     │
-│  PostgreSQL (data store)    │  │  (receipt OCR)         │
-│  RLS policies (per-table)  │  │                        │
-└─────────────────────────────┘  └────────────────────────┘
-```
-
-**Data flow:**
-1. UI components call functions in the `services/` layer
-2. Services interact with Supabase via the JS SDK (PostgREST under the hood)
-3. PostgreSQL enforces Row-Level Security on every query
-4. Real-time notification subscriptions use Supabase Realtime (Postgres changes)
-
-**AI receipt scanning flow:**
-1. Client captures a receipt image and sends base64 data to `/api/scan-receipt`
-2. The Next.js API route forwards the image to Google Gemini with a structured prompt
-3. Gemini returns JSON with merchant, items, tax, and total
-4. The API route validates, sanitizes, and returns the parsed data to the client
-5. The Gemini API key stays server-side and is never exposed to the browser
-
-## Tech Stack
-
-| Layer | Technologies |
+| Layer | Technology |
 |---|---|
 | **Framework** | Next.js 16 (App Router, Turbopack, React Compiler) |
-| **UI** | React 19, Framer Motion, Lucide React icons |
+| **UI** | React 19, Framer Motion, Lucide React |
 | **Styling** | Tailwind CSS 4 |
-| **Mobile UX** | react-swipeable (gesture support), PWA manifest |
-| **Database** | PostgreSQL (via Supabase) |
-| **Auth** | Supabase Auth (email/password) |
+| **Mobile UX** | react-swipeable, PWA manifest |
+| **Database** | PostgreSQL (Supabase) |
+| **Auth** | Supabase Auth |
 | **Real-time** | Supabase Realtime (Postgres changes) |
-| **AI** | Google Gemini API (receipt OCR via server-side API route) |
-| **Linting** | ESLint 9 with eslint-config-next |
+| **AI** | Google Gemini API (server-side) |
+| **Linting** | ESLint 9, eslint-config-next |
 
-## Engineering Highlights
+---
 
-- **Service-layer architecture** — All data access is isolated in `services/` with a consistent `{ success, data, error }` return pattern. UI components never call Supabase directly.
-- **Greedy debt simplification** — The `simplifyDebts()` algorithm sorts creditors and debtors by magnitude and greedily matches them, minimizing the number of settlement transactions.
-- **Cent-accurate splitting** — Equal splits distribute remainder cents across the first _N_ members rather than rounding, preventing ledger drift. Percentage splits patch the rounding difference onto the first user.
-- **Row-Level Security** — Every user-data table (`groups`, `group_members`, `expenses`, `expense_splits`, `settlements`, `profiles`, `notifications`, `personal_expenses`, `monthly_budgets`) has RLS enabled with policies enforcing membership and ownership checks.
-- **Iterative RLS hardening** — The migration history shows multiple rounds of RLS refinement to eliminate infinite-recursion issues with self-referencing policy checks on `group_members`.
-- **Auto-pending personal expenses** — When a group expense is created, personal expense entries are automatically generated for each split participant, bridging group and personal tracking.
-- **Real-time notifications** — Uses Supabase Realtime to subscribe to `INSERT` events on the `notifications` table, delivering instant in-app updates.
-- **Server-side AI isolation** — The Gemini API key is only referenced in the server-side API route (`app/api/scan-receipt/route.js`). Client-facing error messages are sanitized to prevent leaking provider details.
-- **RLS smoke testing** — An automated test script (`scripts/rls-smoke-test.mjs`) verifies that non-members cannot read groups or insert expenses, and that users cannot spoof `paid_by` fields.
-
-## Database & Security
-
-**Database:** PostgreSQL hosted on Supabase, with 8 user-data tables and a structured migration history (22 migration files).
-
-**Authentication:** Supabase Auth handles signup, login, and session management. Users are identified by UUID. A `profiles` table stores usernames and email addresses, linked to `auth.users`.
-
-**Row-Level Security (RLS):** Every table has RLS enabled. Policies enforce:
-- Users can only read groups they are members of
-- Expenses can only be created by authenticated group members
-- Users cannot spoof the `paid_by` field on expenses
-- Personal expenses and budgets are scoped to the owning user
-- Notifications are scoped to the target user
-- Settlements are scoped to group membership
-
-**Environment variables:** Secrets are loaded from `.env.local` (gitignored). The Supabase client throws immediately if required variables are missing, preventing silent failures with placeholder credentials.
-
-## Project Structure
+## 09 — Project Structure
 
 ```
 splitsync-app/
-├── app/                          # Next.js App Router pages
-│   ├── api/scan-receipt/         # Server-side Gemini receipt scanning
-│   ├── dashboard/                # Main dashboard, analytics, expenses
-│   ├── groups/[groupId]/         # Group detail page (dynamic route)
-│   ├── login/                    # Login page
-│   ├── signup/                   # Signup page
-│   ├── layout.js                 # Root layout (nav, FAB, transitions)
-│   ├── manifest.js               # PWA web app manifest
-│   └── page.js                   # Landing page
-├── components/                   # Reusable UI components
-│   ├── BottomSheet.jsx           # Mobile bottom sheet
-│   ├── FloatingActionButton.jsx  # Quick-action FAB
-│   ├── ItemAssignmentModal.jsx   # Receipt item assignment
-│   ├── MobileBottomNav.jsx       # Bottom navigation bar
-│   ├── NotificationBell.jsx      # Real-time notification bell
-│   ├── PremiumAddExpenseModal.jsx # Expense creation modal
-│   ├── PremiumBalancesScreen.jsx  # Balance/settlement view
-│   ├── PremiumDashboard.jsx      # Dashboard card layout
-│   ├── ReceiptScannerModal.jsx   # AI receipt scanning UI
-│   └── SwipeableExpenseItem.jsx  # Swipe-to-delete expense item
-├── services/                     # Data-access layer
-│   ├── analyticsService.js       # Expense analytics and category inference
-│   ├── authService.js            # Authentication (signup, login, logout)
-│   ├── budgetService.js          # Monthly budget CRUD
-│   ├── expenseService.js         # Expense CRUD, balance calc, debt simplification
-│   ├── groupService.js           # Group CRUD, member management
-│   ├── notificationService.js    # Notification send/subscribe/mark-read
-│   ├── personalExpenseService.js # Personal expense CRUD and stats
-│   ├── settlementService.js      # Settlement creation and retrieval
-│   └── splitService.js           # Expense split row creation
-├── lib/                          # Shared utilities
-│   ├── supabaseClient.js         # Supabase client initialization
-│   ├── useGroups.js              # Custom hook for group state
-│   └── motion.js                 # Framer Motion animation presets
-├── supabase/                     # Database configuration
-│   ├── config.toml               # Local Supabase config
-│   └── migrations/               # 22 SQL migration files
-├── scripts/                      # Tooling
-│   └── rls-smoke-test.mjs        # Automated RLS verification script
-├── public/                       # Static assets (icons, logos)
-├── .env.example                  # Required environment variables
-├── .gitignore                    # Git ignore rules
-├── package.json                  # Dependencies and scripts
-├── next.config.mjs               # Next.js configuration
-├── eslint.config.mjs             # ESLint configuration
-└── postcss.config.mjs            # PostCSS configuration
+├── app/                            # Next.js App Router
+│   ├── api/scan-receipt/           #   Server-side Gemini receipt scanning
+│   ├── dashboard/                  #   Dashboard, analytics, expenses pages
+│   ├── groups/[groupId]/           #   Dynamic group detail page
+│   ├── login/ & signup/            #   Auth pages
+│   ├── layout.js                   #   Root layout (nav, FAB, transitions)
+│   └── manifest.js                 #   PWA web app manifest
+├── components/                     # UI components (11 files)
+│   ├── ReceiptScannerModal.jsx     #   AI receipt scanning interface
+│   ├── PremiumAddExpenseModal.jsx   #   Expense creation with split modes
+│   ├── PremiumBalancesScreen.jsx    #   Balance & settlement view
+│   ├── NotificationBell.jsx        #   Real-time notification bell
+│   └── ...                         #   Bottom nav, FAB, sheets, swipeable items
+├── services/                       # Data-access layer (10 files)
+│   ├── expenseService.js           #   Expense CRUD, balance calc, debt simplification
+│   ├── groupService.js             #   Group CRUD, member management
+│   ├── analyticsService.js         #   Category inference, aggregation engine
+│   ├── notificationService.js      #   Send, subscribe, mark-read
+│   └── ...                         #   Auth, budgets, personal expenses, settlements, splits
+├── lib/                            # Supabase client, hooks, animation presets
+├── supabase/migrations/            # 22 SQL migration files
+├── scripts/                        # RLS smoke test
+└── public/                         # Icons, logos, PWA assets
 ```
 
-## Getting Started
+---
 
-### Prerequisites
+## 10 — Getting Started
 
-- Node.js 18+ and npm
-- A [Supabase](https://supabase.com) project with the migrations applied
-- A [Google Gemini API key](https://ai.google.dev/) (for receipt scanning)
-
-### Installation
+**Prerequisites:** Node.js 18+, a [Supabase](https://supabase.com) project, a [Gemini API key](https://ai.google.dev/)
 
 ```bash
-# Clone the repository
+# Clone and install
 git clone https://github.com/krishika08/splitsync-app.git
 cd splitsync-app
-
-# Install dependencies
 npm install
-```
 
-### Environment Variables
-
-Copy the example file and fill in your values:
-
-```bash
+# Configure environment
 cp .env.example .env.local
-```
+# Fill in your values (see below)
 
-| Variable | Description |
-|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase anonymous (public) key |
-| `GEMINI_API_KEY` | Google Gemini API key (server-side only) |
-
-> **Note:** The `NEXT_PUBLIC_` prefix makes a variable available in the browser. `GEMINI_API_KEY` intentionally lacks this prefix — it is only accessible in server-side API routes.
-
-### Database Setup
-
-Apply the Supabase migrations to your project. The migrations are located in `supabase/migrations/` and should be run in order via the Supabase CLI or SQL Editor.
-
-### Run the Development Server
-
-```bash
+# Run
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000).
 
-### Production Build
+### Environment Variables
 
-```bash
-npm run build
-npm start
-```
+| Variable | Scope | Description |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Client + Server | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client + Server | Supabase anonymous (public) key |
+| `GEMINI_API_KEY` | Server only | Google Gemini API key |
 
-## Development
+> `NEXT_PUBLIC_` variables are exposed to the browser. `GEMINI_API_KEY` intentionally lacks this prefix — it is only accessible in server-side API routes.
+
+### Database Setup
+
+Apply the migrations in `supabase/migrations/` to your Supabase project via the CLI or SQL Editor.
+
+---
+
+## 11 — Development
 
 | Command | Description |
 |---|---|
 | `npm run dev` | Start development server |
-| `npm run build` | Create production build |
+| `npm run build` | Production build |
 | `npm start` | Start production server |
 | `npm run lint` | Run ESLint |
-| `npm run rls:smoke` | Run RLS smoke tests (requires test user env vars) |
+| `npm run rls:smoke` | Run RLS smoke tests |
 
-## Roadmap
+---
 
-The following are planned improvements, not yet implemented:
+## 12 — Roadmap
 
-- [ ] OAuth providers (Google, GitHub) via Supabase Auth
+Planned improvements (not yet implemented):
+
+- [ ] OAuth providers (Google, GitHub)
 - [ ] Push notifications (Web Push API)
 - [ ] Recurring expense automation
-- [ ] Expense attachments and receipt image storage
-- [ ] Export data (CSV/PDF)
-- [ ] Currency conversion for multi-currency groups
+- [ ] Receipt image storage
+- [ ] Data export (CSV/PDF)
+- [ ] Multi-currency support
 - [ ] Group invite links
 
-## License
+---
 
-No license file is currently included in this repository. All rights reserved by the author unless otherwise specified.
+## 13 — License
+
+No license file is currently included. All rights reserved by the author unless otherwise specified.
+
+---
+
+<div align="center">
+
+**Built with Next.js, Supabase, and Google Gemini**
+
+</div>
