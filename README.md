@@ -3,7 +3,7 @@
 # SplitSync
 <p align="center">
   <img 
-    src="./assets/splitsync-hero.png" 
+    src="splitsync-hero.png" 
     alt="SplitSync — Expense splitting and financial management"
     width="100%"
   />
