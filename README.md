@@ -27,7 +27,7 @@ A full-stack expense splitting app with AI receipt scanning, real-time notificat
 
 | Dashboard | Group View | Receipt Scanner |
 |:-:|:-:|:-:|
-| _`dashboard.png`_ | _`group-view.png`_ | _`receipt-scanner.png`_ |
+| `dashboard.png` | _`group-view.png`_ | _`receipt-scanner.png`_ |
 
 | Analytics | Expenses | Notifications |
 |:-:|:-:|:-:|
