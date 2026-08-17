@@ -1,7 +1,13 @@
 <div align="center">
 
 # SplitSync
-
+<p align="center">
+  <img 
+    src="./assets/splitsync-hero.png" 
+    alt="SplitSync — Expense splitting and financial management"
+    width="100%"
+  />
+</p>
 ### Split expenses. Not friendships.
 
 A full-stack expense splitting app with AI receipt scanning, real-time notifications, and bank-grade row-level security — built on Next.js 16 and Supabase.
@@ -22,14 +28,6 @@ A full-stack expense splitting app with AI receipt scanning, real-time notificat
 ---
 
 ## 01 — Product Preview
-
-<p align="center">
-  <img 
-    src="./assets/splitsync-hero.png" 
-    alt="SplitSync — Expense splitting and financial management"
-    width="100%"
-  />
-</p>
 
 <p align="center">
   <strong>Split expenses. Stay friends.</strong><br/>
