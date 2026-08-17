@@ -38,13 +38,11 @@ A full-stack expense splitting app with AI receipt scanning, real-time notificat
 
 | Dashboard | Group View | Receipt Scanner |
 |:---:|:---:|:---:|
-| `dashboard.png` | `group-view.png` | `receipt-scanner.png` |
+| <img src="./assets/screenshots/dashboard.png" alt="SplitSync Dashboard" width="300"/> | <img src="./assets/screenshots/group-view.png" alt="SplitSync Group View" width="300"/> | <img src="./assets/screenshots/receipt-scanner.png" alt="SplitSync Receipt Scanner" width="300"/> |
 
 | Analytics | Expenses | Notifications |
 |:---:|:---:|:---:|
-| `analytics.png` | `expenses.png` | `notifications.png` |
-
-> More product screenshots will be added as the showcase is expanded.
+| <img src="./assets/screenshots/analytics.png" alt="SplitSync Analytics" width="300"/> | <img src="./assets/screenshots/expenses.png" alt="SplitSync Expenses" width="300"/> | <img src="./assets/screenshots/notifications.png" alt="SplitSync Notifications" width="300"/> |
 
 ---
 
