@@ -23,15 +23,30 @@ A full-stack expense splitting app with AI receipt scanning, real-time notificat
 
 ## 01 — Product Preview
 
-> Screenshots coming soon. The sections below are ready for real captures.
+<p align="center">
+  <img 
+    src="./assets/splitsync-hero.png" 
+    alt="SplitSync — Expense splitting and financial management"
+    width="100%"
+  />
+</p>
+
+<p align="center">
+  <strong>Split expenses. Stay friends.</strong><br/>
+  A modern expense-sharing experience built with Next.js, Supabase and AI-powered receipt scanning.
+</p>
+
+### Product Screens
 
 | Dashboard | Group View | Receipt Scanner |
-|:-:|:-:|:-:|
-| `dashboard.png` | _`group-view.png`_ | _`receipt-scanner.png`_ |
+|:---:|:---:|:---:|
+| `dashboard.png` | `group-view.png` | `receipt-scanner.png` |
 
 | Analytics | Expenses | Notifications |
-|:-:|:-:|:-:|
-| _`analytics.png`_ | _`expenses.png`_ | _`notifications.png`_ |
+|:---:|:---:|:---:|
+| `analytics.png` | `expenses.png` | `notifications.png` |
+
+> More product screenshots will be added as the showcase is expanded.
 
 ---
 
