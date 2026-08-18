@@ -9,7 +9,6 @@
   
 # SplitSync
 ### Split expenses. Not friendships.
-
 ### A full-stack expense splitting app with AI receipt scanning, real-time notifications, and bank-grade row-level security — built on Next.js 16 and Supabase.
 
 <br />
