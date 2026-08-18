@@ -6,6 +6,7 @@
     width="100%"
   />
 </p>
+  
 # SplitSync
 ### Split expenses. Not friendships.
 
