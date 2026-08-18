@@ -98,26 +98,7 @@ For personal tracking, log expenses independently with 13 categories and set mon
 ## 05 — Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                       Client (Browser)                      │
-│                                                             │
-│   app/           React pages (Next.js App Router)           │
-│   components/    Reusable UI (modals, nav, sheets)          │
-│   services/      Data-access layer (Supabase queries)       │
-│   lib/           Client init, hooks, animation config       │
-└────────────┬──────────────────────────┬─────────────────────┘
-             │                          │
-             │  Supabase JS SDK         │  Server-side fetch
-             │                          │
-┌────────────▼────────────────┐    ┌────▼─────────────────────┐
-│      Supabase (BaaS)        │    │   Next.js API Routes     │
-│                             │    │                          │
-│   Auth     (email/password) │    │   POST /api/scan-receipt │
-│   PostgREST (CRUD API)     │    │         │                │
-│   Realtime  (notifications) │    │         ▼                │
-│   PostgreSQL (data store)   │    │   Google Gemini API      │
-│   RLS policies (per-table)  │    │   (receipt OCR)          │
-└─────────────────────────────┘    └──────────────────────────┘
+<img src="architecture.png" alt="Architecture Dashboard/>
 ```
 
 **AI Receipt Flow:** Client sends base64 image → server-side API route forwards to Gemini with a structured prompt → Gemini returns JSON (merchant, items, tax, total) → API validates, sanitizes, and returns parsed data. The Gemini API key never reaches the browser.
