@@ -1,6 +1,4 @@
 <div align="center">
-
-# SplitSync
 <p align="center">
   <img 
     src="splitsync-hero.png" 
@@ -8,9 +6,10 @@
     width="100%"
   />
 </p>
+# SplitSync
 ### Split expenses. Not friendships.
 
-A full-stack expense splitting app with AI receipt scanning, real-time notifications, and bank-grade row-level security — built on Next.js 16 and Supabase.
+### A full-stack expense splitting app with AI receipt scanning, real-time notifications, and bank-grade row-level security — built on Next.js 16 and Supabase.
 
 <br />
 
