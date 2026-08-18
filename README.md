@@ -98,7 +98,8 @@ For personal tracking, log expenses independently with 13 categories and set mon
 ## 05 — Architecture
 
 ```
-<img src="architecture.png" alt="Architecture Dashboard/>
+<img src="architecture.png" alt="Architecture Dashboard" />
+
 ```
 
 **AI Receipt Flow:** Client sends base64 image → server-side API route forwards to Gemini with a structured prompt → Gemini returns JSON (merchant, items, tax, total) → API validates, sanitizes, and returns parsed data. The Gemini API key never reaches the browser.
