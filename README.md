@@ -37,12 +37,11 @@
 
 | Dashboard | Group View | Receipt Scanner |
 |:---:|:---:|:---:|
-| <img src="./assets/screenshots/dashboard.png" alt="SplitSync Dashboard" width="300"/> | <img src="./assets/screenshots/group-view.png" alt="SplitSync Group View" width="300"/> | <img src="./assets/screenshots/receipt-scanner.png" alt="SplitSync Receipt Scanner" width="300"/> |
+| <img src="dashboard.png" alt="SplitSync Dashboard" width="300"/> | <img src="group-view.png" alt="SplitSync Group View" width="300"/> | <img src="receipt-scanner.png" alt="SplitSync Receipt Scanner" width="300"/> |
 
-| Analytics | Expenses | Notifications |
-|:---:|:---:|:---:|
-| <img src="./assets/screenshots/analytics.png" alt="SplitSync Analytics" width="300"/> | <img src="./assets/screenshots/expenses.png" alt="SplitSync Expenses" width="300"/> | <img src="./assets/screenshots/notifications.png" alt="SplitSync Notifications" width="300"/> |
-
+| Analytics | Expenses |
+|:---:|:---:|
+| <img src="analytics.png" alt="SplitSync Analytics" width="300"/> | <img src="expenses.png" alt="SplitSync Expenses" width="300"/> |
 ---
 
 ## 02 — Key Capabilities
